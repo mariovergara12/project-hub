@@ -2,7 +2,7 @@ import os
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field, SecretStr, field_validator
+from pydantic import AnyHttpUrl, Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import URL, make_url
 from sqlalchemy.exc import ArgumentError
@@ -23,6 +23,21 @@ class Settings(BaseSettings):
     database_password: SecretStr | None = None
     database_pool_size: int = Field(default=5, ge=1)
     database_max_overflow: int = Field(default=5, ge=0)
+    supabase_url: AnyHttpUrl | None = None
+
+    @field_validator("supabase_url")
+    @classmethod
+    def validate_supabase_url(cls, value: AnyHttpUrl | None) -> AnyHttpUrl | None:
+        if value is not None and (
+            value.scheme != "https"
+            or value.path not in (None, "/")
+            or value.query
+            or value.fragment
+            or value.username
+            or value.password
+        ):
+            raise ValueError("SUPABASE_URL must be an HTTPS project origin without credentials")
+        return value
 
     @field_validator("database_url")
     @classmethod

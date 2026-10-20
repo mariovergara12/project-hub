@@ -1,1 +1,1 @@
-"""Future external identity verification adapter. No custom password storage."""
+"""Supabase access-token verification. No custom password storage or token issuance."""

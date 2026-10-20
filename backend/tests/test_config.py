@@ -124,3 +124,17 @@ def test_supabase_missing_password_fails_before_connecting(password: str | None)
     )
     with pytest.raises(ValueError, match="DATABASE_PASSWORD"):
         settings.connection_url()
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "http://project.supabase.co",
+        "https://project.supabase.co/path",
+        "https://user:secret@project.supabase.co",
+        "https://project.supabase.co?redirect=elsewhere",
+    ],
+)
+def test_auth_project_url_must_be_https_origin(url: str) -> None:
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None, database_url="postgresql+psycopg://localhost/db", supabase_url=url)
