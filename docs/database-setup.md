@@ -59,8 +59,16 @@ client access policies. A follow-up migration removes all table privileges for
 by the migration role in `public` too. Supabase roles are optional, so this also
 runs on local PostgreSQL. Privilege restrictions remain in place when rolling back
 that revision; future access must use explicit grants alongside reviewed policies.
-The database owner can bypass RLS; authentication and request authorization are
-separate future work.
+The database owner can bypass RLS; the FastAPI self-profile routes enforce ownership
+through the verified token subject and explicitly allowed input fields.
+
+Set `SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co` in the selected private
+environment file for Auth. Sign in through Supabase Auth, then send the access token
+as `Authorization: Bearer <access_token>` to `GET /me` and `PATCH /me/profile`.
+Creating a profile requires `display_name`; subsequent PATCH requests can supply
+only the fields being changed. The public-key verifier requires no API key or
+signing secret. Missing Auth configuration returns 503 for protected requests;
+`/health` still works. No registration or password-handling endpoints are provided.
 
 Run integration tests against a separate **local** empty database ending in
 `_test`, using `TEST_DATABASE_URL`. Never run the destructive integration fixture

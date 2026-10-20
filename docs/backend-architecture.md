@@ -1,7 +1,7 @@
 # Backend foundation
 
 The backend is a modular monolith: one FastAPI process and one PostgreSQL database.
-Only `/health` is implemented. Feature packages are placeholders for later work.
+The API exposes `/health`, authenticated `GET /me`, and `PATCH /me/profile`.
 
 ## Code boundaries
 
@@ -9,8 +9,9 @@ Only `/health` is implemented. Feature packages are placeholders for later work.
 - `app/core/database.py`: lazy SQLAlchemy engine and one session per dependency call.
   Services will explicitly commit transactions; dependency teardown closes the session
   and rolls back unfinished work. Never share a session between requests.
-- `app/core/security.py`: future authorization dependencies.
-- `app/modules/auth`: future external identity verification adapter.
+- `app/core/security.py`: Bearer authentication dependency, passing only a verified UUID.
+- `app/modules/auth`: Supabase JWT verification using the project's HTTPS JWKS endpoint.
+- `app/modules/users`: self-profile routes, input/output schemas, services, and queries.
 - Other feature packages: add routes, Pydantic schemas, services, and repositories
   only as features are implemented. Routes handle HTTP, services handle business
   rules, repositories handle queries. Authentication and permission checks stay at
@@ -76,14 +77,14 @@ to future services and transactions. Nothing in this foundation implements them.
 Learning goals and experience have initial fields; scoring semantics and structured
 representations can evolve when the recommendation feature is designed.
 
-## Future Supabase connection and identity
+## Supabase connection and identity
 
 The backend supports a separate private `.env.supabase` connection selected with
 `PROJECT_HUB_ENV_FILE=.env.supabase`; `.env` remains the local default. See
 [database setup](database-setup.md) for commands. SQLAlchemy and Alembic remain the
 owners of the application schema. No Supabase SDK or API keys are needed for this
-database connection, and no password storage for application users, login, JWT, or
-registration implementations exist.
+database connection or public-key JWT verification. Supabase owns sign-in and token
+issuance; application passwords and signing secrets are never stored here.
 
 Switching database hosts will use `DATABASE_URL` and optional pool environment
 variables, without changing services or repositories. Keep the `postgresql+psycopg`
@@ -94,19 +95,28 @@ the direct connection for migrations (or a session pooler when network access
 requires it). Review transaction-pooler restrictions, including prepared statements,
 before choosing it; the current configuration targets direct/session connections.
 
-Before enabling Supabase Auth:
+`SUPABASE_URL` selects the trusted Auth issuer. The verifier accepts only ES256 or
+RS256 signatures from that project's public signing keys, with matching issuer,
+authenticated audience/role, valid timestamps, and UUID subject/session claims.
+Anonymous sign-ins and service tokens are rejected. JWKS are cached for five
+minutes; key-fetch failures fail closed. JWT verification is stateless, so an
+unexpired token can remain valid after logout until expiry; this is not a live
+session-revocation check. No token or user metadata grants application privileges.
 
-1. Back up local data. Existing local UUIDs will not automatically match Auth UUIDs.
-   For disposable development data, reset it; otherwise plan and test ID mapping
-   across every dependent table.
-2. In a new **Alembic** migration, make `public.users.id` reference only
-   `auth.users.id` with the reviewed deletion behavior. Do not put a fake `auth`
-   schema into local development or let autogenerate manage Supabase-owned tables.
-3. The future auth adapter verifies identity and supplies the Auth UUID when the
-   application user is provisioned. Use a trusted transaction or carefully tested
-   provisioning trigger. Keep profile changes separate from role/verification changes.
-4. Never authorize from user-editable Supabase `user_metadata`. Keep secrets and
-   any privileged database/service-role connection on the backend.
+Revision `cc1194778d46` links `public.users.id` to `auth.users.id` with ON DELETE
+CASCADE when the provider schema exists. It leaves plain local PostgreSQL usable
+without creating an Auth schema. The cross-schema constraint is managed explicitly
+in Alembic and excluded from autogenerate removal. Tests use a minimal Auth stub
+only inside rolled-back test transactions. Existing user IDs must match Auth IDs
+before applying this migration; it does not remap or discard existing users.
+
+The first authenticated self-profile request provisions a student application user
+idempotently. `GET /me` returns the own account and optional profile.
+`PATCH /me/profile` creates a profile when given a display name, or partially updates
+allowed profile fields. Ownership comes only from the verified subject. Unknown
+fields, role changes, faculty verification changes, and identity reassignment are
+rejected. Trusted database role/verification values are preserved. Deleting an Auth
+identity prevents hosted reprovisioning, even while an old access token is unexpired.
 
 References: [managing user data](https://supabase.com/docs/guides/auth/managing-user-data),
 [database connections](https://supabase.com/docs/guides/database/connecting-to-postgres).
@@ -149,7 +159,7 @@ recursive policies. Test allow and deny cases for anonymous users, owner, unrela
 students, team members, faculty, and administrators, including cross-project ID
 changes and privilege escalation. Avoid security-definer shortcuts.
 
-RLS does not restrict table owners or privileged service connections. The future
+RLS does not restrict table owners or privileged service connections. The
 FastAPI authorization layer must enforce permissions when it uses such a connection;
 do not assume a verified JWT alone causes SQLAlchemy queries to use `auth.uid()`.
 
