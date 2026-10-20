@@ -5,6 +5,7 @@ requires-python = ">=3.12"
 description = "Backend foundation for Project Hub"
 dependencies = [
     "alembic>=1.16,<2",
+    "certifi>=2025.1,<2027",
     "fastapi>=0.115,<1",
     "psycopg[binary]>=3.2,<4",
     "pydantic-settings>=2.8,<3",

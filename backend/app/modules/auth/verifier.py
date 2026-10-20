@@ -1,8 +1,10 @@
 """Verify provider-issued access tokens; never mint tokens or handle passwords."""
 
 from dataclasses import dataclass
+from ssl import create_default_context
 from uuid import UUID
 
+import certifi
 import jwt
 from jwt import PyJWKClient
 from jwt.exceptions import PyJWKClientConnectionError, PyJWTError
@@ -24,7 +26,12 @@ class Identity:
 class SupabaseTokenVerifier:
     def __init__(self, project_url: str) -> None:
         self.issuer = project_url.rstrip("/") + "/auth/v1"
-        self.jwks = PyJWKClient(self.issuer + "/.well-known/jwks.json", lifespan=300, timeout=5)
+        self.jwks = PyJWKClient(
+            self.issuer + "/.well-known/jwks.json",
+            lifespan=300,
+            timeout=5,
+            ssl_context=create_default_context(cafile=certifi.where()),
+        )
 
     def verify(self, token: str) -> Identity:
         try:
