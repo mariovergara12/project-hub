@@ -1,4 +1,5 @@
 from logging.config import fileConfig
+from typing import Any
 
 from alembic import context
 
@@ -12,6 +13,14 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 
+def include_object(
+    obj: Any, name: str | None, type_: str, reflected: bool, compare_to: Any
+) -> bool:
+    # This externally owned reference is maintained by an explicit migration.
+    # Autogenerate must neither manage auth.users nor remove the hosted-only FK.
+    return not (type_ == "foreign_key_constraint" and name == "fk_users_id_auth_users")
+
+
 def run_migrations_offline() -> None:
     context.configure(
         url=get_settings().connection_url(),
@@ -19,6 +28,7 @@ def run_migrations_offline() -> None:
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
         compare_type=True,
+        include_object=include_object,
     )
     with context.begin_transaction():
         context.run_migrations()
@@ -31,7 +41,10 @@ def run_migrations_online() -> None:
     try:
         with engine.connect() as connection:
             context.configure(
-                connection=connection, target_metadata=target_metadata, compare_type=True
+                connection=connection,
+                target_metadata=target_metadata,
+                compare_type=True,
+                include_object=include_object,
             )
             with context.begin_transaction():
                 context.run_migrations()

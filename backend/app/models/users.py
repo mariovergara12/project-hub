@@ -19,7 +19,8 @@ if TYPE_CHECKING:
 class User(Timestamps, Base):
     __tablename__ = "users"
 
-    # Explicitly supplied: later this is the verified Supabase Auth subject UUID.
+    # Verified Auth subject UUID. The cross-schema FK is managed explicitly by
+    # Alembic, so this model doesn't require or manage Supabase's Auth schema.
     id: Mapped[UUID] = mapped_column(primary_key=True)
     role: Mapped[UserRole] = mapped_column(
         enum_column(UserRole, "user_role"), server_default=UserRole.STUDENT.value
