@@ -34,3 +34,16 @@ won't create a membership yet; that belongs in the workflow we'll build next.
 The work is split into backend-branch commits. No paid services were added. The
 next step is to decide the first feature to build on top of this, probably auth and
 profiles before project CRUD.
+
+## Supabase connection setup
+
+The backend can now select a separate `.env.supabase` file for the hosted database,
+while `.env` still points to local Postgres by default. Both files stay out of Git.
+The hosted connection requires SSL, and its password is kept separate from the URL
+so special characters won't break it. The commands are in `docs/database-setup.md`;
+the README is staying short for now.
+
+All 34 local tests passed, including the existing PostgreSQL migration tests.
+The hosted connection test, initial migration, and RLS inspection are still pending
+until the database password is saved in the private file. No public access or
+authentication code has been added.

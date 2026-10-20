@@ -78,13 +78,17 @@ representations can evolve when the recommendation feature is designed.
 
 ## Future Supabase connection and identity
 
-No Supabase project, SDK, API key, Auth schema, or network connection is used today.
-SQLAlchemy and Alembic remain the owners of the application schema. There are no
-password, password hash, login, JWT, or registration implementations.
+The backend supports a separate private `.env.supabase` connection selected with
+`PROJECT_HUB_ENV_FILE=.env.supabase`; `.env` remains the local default. See
+[database setup](database-setup.md) for commands. SQLAlchemy and Alembic remain the
+owners of the application schema. No Supabase SDK or API keys are needed for this
+database connection, and no password storage for application users, login, JWT, or
+registration implementations exist.
 
 Switching database hosts will use `DATABASE_URL` and optional pool environment
 variables, without changing services or repositories. Keep the `postgresql+psycopg`
-driver prefix; percent-encode special characters in URL credentials. For a hosted
+driver prefix. A separate `DATABASE_PASSWORD` supports special characters without
+URL encoding; credentials embedded directly in a URL still need encoding. For a hosted
 connection, use the SSL settings and connection string supplied by Supabase. Prefer
 the direct connection for migrations (or a session pooler when network access
 requires it). Review transaction-pooler restrictions, including prepared statements,
