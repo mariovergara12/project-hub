@@ -1,0 +1,56 @@
+name: Backend
+
+on:
+  push:
+    branches: [main, backend-foundation]
+    paths: ["backend/**", "compose.yaml", ".github/workflows/backend.yml"]
+  pull_request:
+    paths: ["backend/**", "compose.yaml", ".github/workflows/backend.yml"]
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    # Standard Linux runners are free for this public repository. Avoid billable
+    # private-repository runs if its visibility changes later.
+    if: github.event.repository.private == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DATABASE_URL: postgresql+psycopg://project_hub:local_dev_only@localhost:5432/project_hub
+      TEST_DATABASE_URL: postgresql+psycopg://project_hub:local_dev_only@localhost:5432/project_hub_test
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.13.2"
+          python-version: "3.12"
+          enable-cache: false
+      - run: uv sync --locked
+      - name: Start local PostgreSQL through Compose
+        working-directory: .
+        run: |
+          docker compose --env-file backend/.env.example config --quiet
+          docker compose --env-file backend/.env.example up -d --wait
+          docker compose --env-file backend/.env.example exec -T db sh -c 'createdb -U "$POSTGRES_USER" project_hub_test'
+      - run: uv run --locked ruff check .
+      - run: uv run --locked ruff format --check .
+      - run: uv run --locked pytest -q
+      - name: Apply application migration and check for drift
+        run: |
+          uv run --locked alembic upgrade head
+          uv run --locked alembic check
+      - name: Verify live API
+        run: |
+          uv run --locked uvicorn app.main:create_app --factory --host 127.0.0.1 --port 8000 &
+          api_pid=$!
+          trap 'kill "$api_pid"' EXIT
+          curl --fail --retry 10 --retry-connrefused --retry-delay 1 http://127.0.0.1:8000/health
+      - name: Stop test containers
+        if: always()
+        working-directory: .
+        run: docker compose --env-file backend/.env.example down --volumes
