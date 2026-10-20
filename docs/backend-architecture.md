@@ -119,6 +119,13 @@ have table grants. The local development/migration owner bypasses RLS; this is n
 proof of user authorization. The integration suite tests a role without ownership,
 superuser privileges, or `BYPASSRLS` to confirm the default denial.
 
+A follow-up migration revokes all table privileges for `PUBLIC` and any existing
+`anon`/`authenticated` roles on application tables and Alembic's version table.
+It removes the same default table grants for the migration role in `public`.
+This covers Supabase's automatic grants and privileges such as TRUNCATE that RLS
+does not restrict. The migration leaves access restricted on downgrade; future
+client access requires a new explicit grant/policy migration.
+
 Keep the Data API disabled or these tables unexposed until grants and policies are
 implemented together in a reviewed Alembic migration. Policy intent for that work:
 

@@ -43,7 +43,18 @@ The hosted connection requires SSL, and its password is kept separate from the U
 so special characters won't break it. The commands are in `docs/database-setup.md`;
 the README is staying short for now.
 
-All 34 local tests passed, including the existing PostgreSQL migration tests.
-The hosted connection test, initial migration, and RLS inspection are still pending
-until the database password is saved in the private file. No public access or
-authentication code has been added.
+The hosted connection is now working over SSL. The initial Alembic migration
+created all 12 application tables, and Alembic reports no schema drift.
+
+Supabase automatically gave its client roles table privileges, so a second
+migration removes those grants from the application tables and Alembic's version
+table. It also removes the matching default grants for future public-schema tables
+created by the migration role. Reads as both `anon` and `authenticated` were denied.
+RLS is enabled on every application table with no client policies, as intended.
+The hosted database is at revision `523b77890196`.
+
+All 35 local tests passed, including a test that reproduces and removes those
+automatic grants. Supabase's advisors only reported informational notices for
+missing RLS policies and unused indexes, which make sense before we add access
+rules or application traffic. No public access or authentication code was added,
+and the database password stays in the ignored local file.
