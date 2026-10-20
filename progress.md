@@ -21,9 +21,11 @@ faculty won't count as being verified. RLS is enabled with no client policies ye
 we'll need to add and test those when we decide what the Data API should expose.
 
 All 19 tests passed against a separate local PostgreSQL 17 instance, including
-migration rollback/reapply, relationships, constraints, session cleanup, and RLS. Ruff passed too,
-and the API responded to a real HTTP request. Docker wasn't installed on the machine
-used for development, so the GitHub workflow also checks the Compose setup on Linux.
+migration rollback/reapply, relationships, constraints, session cleanup, and RLS.
+Ruff passed too, and the API responded to a real HTTP request. Docker wasn't
+installed on the machine used for development, so the Compose setup was checked on
+Linux in GitHub CI. That passed too: Postgres started through Compose, all 19 tests
+passed, the migration applied without drift, and the API responded to `/health`.
 
 One thing to keep in mind for later: deleting a user who owns a project is blocked
 until their projects are transferred or removed. Also, accepting an application
