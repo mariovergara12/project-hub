@@ -1,7 +1,7 @@
 # Database setup
 
 We use Supabase for the application's shared development database and sign-in.
-The backend runs locally and connects to Supabase.
+The backend is hosted on Vercel and can also run locally against Supabase.
 
 You need Python 3.12 and `uv` to run the backend. Start each section below from
 the repository root. Keep existing private environment files; copy an example
@@ -50,6 +50,7 @@ The frontend needs these connection settings:
 | Setting | Value |
 | --- | --- |
 | API base URL | `http://127.0.0.1:8000` when running the backend on the same computer |
+| Hosted API base URL | `https://project-hub-api-ruby.vercel.app` |
 | Supabase URL | The same project URL as the backend's `SUPABASE_URL` |
 | Supabase publishable key | From the project's API Keys settings in Supabase |
 
@@ -57,9 +58,9 @@ Use the publishable key for frontend sign-in. The database password and server-s
 secret key belong only in backend configuration. Demo login details are in the
 seed operator's private `backend/.demo-accounts.json`.
 
-The API has not been deployed yet. We can both run it locally; a shared API
-address will be available after deployment. Your friend's localhost points to
-their own computer.
+Use the hosted API for shared frontend development. Its endpoint documentation
+is at <https://project-hub-api-ruby.vercel.app/docs>. When running locally,
+`localhost` always points to the computer running that command.
 
 Add the frontend's address to `CORS_ORIGINS` in the backend environment file
 you are using. For example:
