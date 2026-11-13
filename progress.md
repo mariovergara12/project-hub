@@ -1,60 +1,38 @@
-# Backend progress — October 19, 2026
+# Project progress — November 13, 2026
 
-Hey! The backend foundation is set up now. FastAPI starts and `/health` returns
-`{"status":"ok"}`. There aren't any user or project endpoints yet; this round was
-just about getting the structure and database ready.
+The backend supports sign-in, profile editing, and browsing projects.
+The frontend still needs to be built.
 
-The database has users, profiles, skills, interests, projects, applications,
-memberships, milestones, and the tables that link skills/interests to people and
-projects. Student projects and faculty research opportunities use the same project
-table. Duplicate applications and memberships are blocked by the database.
+## What is done
 
-Everything is set up for local PostgreSQL through Docker Compose. The README has
-the commands to install dependencies with uv, start Postgres, run migrations, and
-launch the API. Copy `backend/.env.example` to `backend/.env` first. The real env
-file stays out of Git.
+- Users can sign in through Supabase.
+- Users can view and edit their own profile.
+- Users can browse, search, and filter open projects.
+- Users can open a project to see its owner, requirements, skills, and interests.
+- Private projects are visible only to their owner or team members.
+- The frontend can request data from the backend.
 
-For Supabase later, the database URL comes from the environment and users have UUID
-IDs that we can link to Supabase Auth. We haven't connected to Supabase or added
-passwords, login, or JWT handling. Faculty verification is its own field, so choosing
-faculty won't count as being verified. RLS is enabled with no client policies yet;
-we'll need to add and test those when we decide what the Data API should expose.
+## Sample data
 
-All 19 tests passed against a separate local PostgreSQL 17 instance, including
-migration rollback/reapply, relationships, constraints, session cleanup, and RLS.
-Ruff passed too, and the API responded to a real HTTP request. Docker wasn't
-installed on the machine used for development, so the Compose setup was checked on
-Linux in GitHub CI. That passed too: Postgres started through Compose, all 19 tests
-passed, the migration applied without drift, and the API responded to `/health`.
+The Supabase development database contains:
 
-One thing to keep in mind for later: deleting a user who owns a project is blocked
-until their projects are transferred or removed. Also, accepting an application
-won't create a membership yet; that belongs in the workflow we'll build next.
+- 10 demo accounts and profiles: 8 students and 2 faculty.
+- 10 projects: 6 open and 4 in other stages.
+- 12 skills and 7 interests linked to users and projects.
 
-The work is split into backend-branch commits. No paid services were added. The
-next step is to decide the first feature to build on top of this, probably auth and
-profiles before project CRUD.
+The data setup script can run again without creating duplicates or resetting
+existing edits and passwords. Demo login details stay in a private local file
+and will not be committed.
 
-## Supabase connection setup
+## What was tested
 
-The backend can now select a separate `.env.supabase` file for the hosted database,
-while `.env` still points to local Postgres by default. Both files stay out of Git.
-The hosted connection requires SSL, and its password is kept separate from the URL
-so special characters won't break it. The commands are in `docs/database-setup.md`;
-the README is staying short for now.
+- All 119 automated tests passed.
+- Code style checks passed.
+- Real demo accounts could sign in and read project data.
+- Private projects were hidden from unrelated users.
+- The database matched the current backend structure.
 
-The hosted connection is now working over SSL. The initial Alembic migration
-created all 12 application tables, and Alembic reports no schema drift.
+## Review status
 
-Supabase automatically gave its client roles table privileges, so a second
-migration removes those grants from the application tables and Alembic's version
-table. It also removes the matching default grants for future public-schema tables
-created by the migration role. Reads as both `anon` and `authenticated` were denied.
-RLS is enabled on every application table with no client policies, as intended.
-The hosted database is at revision `523b77890196`.
-
-All 35 local tests passed, including a test that reproduces and removes those
-automatic grants. Supabase's advisors only reported informational notices for
-missing RLS policies and unused indexes, which make sense before we add access
-rules or application traffic. No public access or authentication code was added,
-and the database password stays in the ignored local file.
+Backend changes go to `backend` first, then to `main` after checks pass.
+The sample data is already in Supabase.

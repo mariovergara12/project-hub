@@ -1,90 +1,138 @@
-# Database connections
+# Database setup
 
-Local PostgreSQL remains the default. Supabase is selected explicitly for each
-command; changing the database does not change application services or models.
+We use Supabase for the application's shared development database and sign-in.
+The backend runs locally and connects to Supabase.
 
-## Local development
+You need Python 3.12 and `uv` to run the backend. Start each section below from
+the repository root. Keep existing private environment files; copy an example
+only when setting up a new file.
 
-From the repository root, copy `backend/.env.example` to `backend/.env` if you
-haven't already, then start PostgreSQL:
+## Connect to Supabase
+
+This machine already has `backend/.env.supabase` configured. On a new machine,
+copy `backend/.env.supabase.example` to `backend/.env.supabase` and fill in:
+
+| Setting | What to enter |
+| --- | --- |
+| `DATABASE_URL` | Session pooler connection from Supabase's Connect screen |
+| `DATABASE_PASSWORD` | Database password, kept separate from the URL |
+| `SUPABASE_URL` | Project URL, such as `https://YOUR_PROJECT_REF.supabase.co` |
+
+Keep `postgresql+psycopg` at the start of the database URL, use port 5432,
+and keep `sslmode=require` to encrypt the connection. The example shows how
+to quote the password. The current setup uses a direct or session-pooler
+connection, not the transaction pooler.
+
+Then run:
 
 ```sh
-docker compose --env-file backend/.env up -d --wait
 cd backend
 uv sync --locked --python 3.12
-uv run alembic upgrade head
-uv run uvicorn app.main:create_app --factory --reload
-```
-
-## Supabase development database
-
-Copy `backend/.env.supabase.example` to `backend/.env.supabase`. Use the session
-pooler connection details from **Connect** in the Supabase dashboard. Keep the
-`postgresql+psycopg` driver prefix, port 5432, and `sslmode=require`.
-
-Store the database password in `DATABASE_PASSWORD` in that private file. This
-overrides a password in `DATABASE_URL` using SQLAlchemy's URL object, so characters
-such as `@`, `%`, and `#` do not need URL encoding. Use dotenv quoting as shown in
-the example; escape embedded single quotes with a backslash. Do not paste the
-password into chat, command-line arguments, or tracked files.
-
-The real `.env` and `.env.supabase` are ignored by Git; only the examples are
-tracked. The private hosted file created during setup has owner-only permissions.
-Environment variables override the selected file. If you previously exported
-`DATABASE_URL` or `DATABASE_PASSWORD`, unset those before switching databases.
-
-From `backend/`, select the hosted file explicitly:
-
-```sh
 PROJECT_HUB_ENV_FILE=.env.supabase uv run alembic upgrade head
 PROJECT_HUB_ENV_FILE=.env.supabase uv run alembic current
 PROJECT_HUB_ENV_FILE=.env.supabase uv run uvicorn app.main:create_app --factory
 ```
 
-Without `PROJECT_HUB_ENV_FILE`, the application and Alembic load only `.env`.
-Supabase's configured pool is limited to two connections per process, with no
-overflow. Use one worker initially and avoid running many processes at once.
+`alembic upgrade head` brings the database structure up to date.
+`alembic current` shows its migration version, currently `cc1194778d46`.
+Use one API worker with the small connection pool in the example.
+The API documentation is at <http://127.0.0.1:8000/docs>.
 
-`sslmode=require` encrypts the connection and refuses a plaintext fallback. For
-server identity verification, use `sslmode=verify-full` with the trusted root
-certificate configuration provided by Supabase. The application rejects Supabase
-URLs with missing SSL settings or modes that permit plaintext.
+Without `PROJECT_HUB_ENV_FILE=.env.supabase`, commands use the local `.env` file.
+Variables already exported in your terminal override either file. If switching
+databases gives unexpected results, check exported `DATABASE_URL` and
+`DATABASE_PASSWORD` values.
 
-Alembic owns application migrations. Do not manually recreate application tables
-in the Table Editor or manage the same tables with Supabase migration tooling.
-Keep the Data API disabled. RLS is enabled by the initial migration without any
-client access policies. A follow-up migration removes all table privileges for
-`PUBLIC`, `anon`, and `authenticated` from the 12 application tables and
-`alembic_version`. It removes those default table grants for future tables created
-by the migration role in `public` too. Supabase roles are optional, so this also
-runs on local PostgreSQL. Privilege restrictions remain in place when rolling back
-that revision; future access must use explicit grants alongside reviewed policies.
-The database owner can bypass RLS; the FastAPI self-profile routes enforce ownership
-through the verified token subject and explicitly allowed input fields.
+## Connect the frontend
 
-Set `SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co` in the selected private
-environment file for Auth. Sign in through Supabase Auth, then send the access token
-as `Authorization: Bearer <access_token>` to `GET /me` and `PATCH /me/profile`.
-Creating a profile requires `display_name`; subsequent PATCH requests can supply
-only the fields being changed. The public-key verifier requires no API key or
-signing secret. Missing Auth configuration returns 503 for protected requests;
-`/health` still works. No registration or password-handling endpoints are provided.
+The frontend needs these connection settings:
 
-Run integration tests against a separate **local** empty database ending in
-`_test`, using `TEST_DATABASE_URL`. Never run the destructive integration fixture
-against the hosted project.
+| Setting | Value |
+| --- | --- |
+| API base URL | `http://127.0.0.1:8000` when running the backend on the same computer |
+| Supabase URL | The same project URL as the backend's `SUPABASE_URL` |
+| Supabase publishable key | From the project's API Keys settings in Supabase |
 
-## Hosted verification
+Use the publishable key for frontend sign-in. The database password and server-side
+secret key belong only in backend configuration. Demo login details are in the
+seed operator's private `backend/.demo-accounts.json`.
 
-The hosted development database was verified at revision `523b77890196`: SSL was
-active, all 12 application tables existed with RLS enabled and no policies, and
-both client roles had no effective table privileges. Reads under `anon` and
-`authenticated` failed with permission denied. Supabase's automatic RLS also
-protects `alembic_version`. Alembic reported no schema drift.
+The API has not been deployed yet. We can both run it locally; a shared API
+address will be available after deployment. Your friend's localhost points to
+their own computer.
 
-The advisors reported informational [RLS enabled without policies](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy)
-and [unused indexes](https://supabase.com/docs/guides/database/database-linter?lint=0005_unused_index).
-Both are expected before client access rules and application traffic exist.
+Add the frontend's address to `CORS_ORIGINS` in the backend environment file
+you are using. For example:
 
-References: [Supabase connection methods](https://supabase.com/docs/guides/database/connecting-to-postgres),
-[SSL modes](https://supabase.com/docs/guides/platform/ssl-enforcement).
+```dotenv
+CORS_ORIGINS='["http://localhost:5173","http://localhost:3000"]'
+```
+
+Use the exact address and port, with no trailing slash. Restart the API after
+changing this setting.
+
+The frontend signs in through Supabase and sends the access token with requests:
+
+```http
+Authorization: Bearer <access_token>
+```
+
+The running API needs `SUPABASE_URL` to check tokens. It does not need the
+server-side secret used to create demo accounts.
+
+## Add sample data
+
+The sample data is already in Supabase. To add missing demo records again,
+run migrations first, then run this from the repository root:
+
+```sh
+cd backend
+
+PROJECT_HUB_ENV_FILE=.env.supabase uv run python -m app.demo.seed \
+  --expected-project-ref wxycbijrtsofvhgtoxgs
+```
+
+For hosted seeding, add `SUPABASE_SECRET_KEY` to the private `.env.supabase` file.
+The older `SUPABASE_SERVICE_ROLE_KEY` is also supported. This key is used only by
+the seed command and stays out of frontend code.
+
+The script creates fictional accounts, profiles, projects, skills, and interests.
+Running it again adds missing records without resetting existing edits or
+passwords. Demo passwords are saved in the private, ignored file
+`backend/.demo-accounts.json`.
+
+## Run database tests locally
+
+Docker and local PostgreSQL are used only for database tests in this guide.
+These tests need a separate, empty local database whose name ends in `_test`.
+They change and remove test tables, so never point them at the shared Supabase
+database or your application database.
+
+If `backend/.env` does not exist, copy `backend/.env.example` to it for the local
+test settings. From the repository root, run:
+
+```sh
+docker compose --env-file backend/.env up -d --wait
+docker compose --env-file backend/.env exec -T db sh -c 'createdb -U "$POSTGRES_USER" project_hub_test'
+cd backend
+uv sync --locked --python 3.12
+TEST_DATABASE_URL=postgresql+psycopg://project_hub:local_dev_only@localhost:5432/project_hub_test uv run pytest -q
+uv run ruff check .
+uv run ruff format --check .
+```
+
+The test URL above uses the local example credentials. Change it if yours differ.
+If the test database already exists, skip the `createdb` command and make sure
+it is empty. Without `TEST_DATABASE_URL`, database tests are skipped.
+
+## Rules to keep
+
+- Private environment files and demo credentials stay out of Git.
+- Use Alembic migrations to change application tables. Do not also manage the
+  same tables through Supabase migration tools or recreate them in the dashboard.
+- Keep the Data API disabled or application tables unexposed. The frontend reads
+  application data through FastAPI.
+- Database row protections are enabled. Missing client access policies are
+  expected because direct frontend access is blocked.
+
+For the overall backend layout, see [backend architecture](backend-architecture.md).
