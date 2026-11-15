@@ -4,6 +4,8 @@ A university collaboration platform connecting students and faculty through inte
 
 The backend uses FastAPI, SQLAlchemy, PostgreSQL, and Supabase Auth.
 
+- [Frontend site](https://project-hub-client-hazel.vercel.app/)
+- [Hosted API documentation](https://project-hub-api-ruby.vercel.app/docs)
 - [Supabase setup and local tests](docs/database-setup.md)
 - [Backend architecture](docs/backend-architecture.md)
 - [Current progress](progress.md)

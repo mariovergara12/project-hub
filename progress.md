@@ -1,7 +1,10 @@
-# Project progress — November 13, 2026
+# Project progress — November 14, 2026
 
 The backend supports sign-in, profile editing, and browsing projects.
-The frontend still needs to be built.
+The initial frontend screens are live and still need to be connected to the API.
+
+- [Frontend site](https://project-hub-client-hazel.vercel.app/)
+- [Hosted API documentation](https://project-hub-api-ruby.vercel.app/docs)
 
 ## What is done
 
@@ -11,6 +14,7 @@ The frontend still needs to be built.
 - Users can open a project to see its owner, requirements, skills, and interests.
 - Private projects are visible only to their owner or team members.
 - The frontend can request data from the backend.
+- The frontend site deploys separately from the API, using the `frontend` branch.
 
 ## Sample data
 
@@ -31,8 +35,13 @@ and will not be committed.
 - Real demo accounts could sign in and read project data.
 - Private projects were hidden from unrelated users.
 - The database matched the current backend structure.
+- Frontend navigation and page refreshes worked on the deployed site.
 
 ## Review status
 
 Backend changes go to `backend` first, then to `main` after checks pass.
 The sample data is already in Supabase.
+
+## Next steps
+
+Connect frontend sign-in, profiles, and project browsing to the hosted API.
