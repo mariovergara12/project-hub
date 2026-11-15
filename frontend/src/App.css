@@ -1,0 +1,59 @@
+.pageTitle {
+    position: relative;
+    width: 100%;
+    height: 120px;
+}
+
+
+.pageTitle h1 {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    margin: 0;
+}
+
+
+.createButton {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+
+.currProjectsButton {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+
+.profileButton {
+    position: absolute;
+    top: 0;
+    right: 0;
+}
+
+/* Used to center groups of stuff */
+.basic-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transform: translateY(100%);
+}
+
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.search-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}

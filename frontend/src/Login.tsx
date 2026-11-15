@@ -6,23 +6,30 @@ const navigate = useNavigate();
 
 
     return (
-        <div className="login-page">
-            <header className="login-header">
+        <div className="pageTitle">
+            <header>
                 <h1>Project Hub</h1>
-
-                <p>
-                <a href="/signup">Sign Up</a>
-                </p>
             </header>
 
-            <main className="login-container">
+            <main className="basic-container">
                 <div className="login-card">
-                    <h2>Welcome Back</h2>
-                    <p>Log in</p>
-
                     <form onSubmit={async(event) => {
                         event.preventDefault();
-                        console.log('Login request sent');
+                        const whichButton = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement;
+                        const formData = new FormData(event.currentTarget);
+                        const username = formData.get('usernameInput');
+                        const password = formData.get('passwordInput');
+
+                        console.log(username);
+                        console.log(password);
+
+                        console.log(whichButton.value);
+                        if (whichButton.value === 'login') {
+                            console.log("ATTEMPTING LOGIN....")
+                        } 
+                        else if (whichButton.value === 'signup') {
+                            console.log("ATTEMPTING SIGNING UP....")
+                        }
 
                         // Successful login
                         navigate('/main');
@@ -30,7 +37,7 @@ const navigate = useNavigate();
 
 
                         <div className="form-group">
-                            <label htmlFor="email">Username</label>
+                            <label htmlFor="username">Username</label>
                             <input
                                 type="text"
                                 id="userLogin"
@@ -44,13 +51,17 @@ const navigate = useNavigate();
                             <input
                                 type='password'
                                 id="password"
-                                name="password"
+                                name="passwordInput"
                                 placeholder="Enter your password"
                             />
                         </div>
 
-                        <button type="submit" className="login-button">
+                        <button type="submit" className="login-button" value="login">
                             Log In
+                        </button>
+
+                        <button type="submit" className="signup-button" value="signup">
+                            Sign Up
                         </button>
                     </form>
                 </div>
