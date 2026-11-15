@@ -24,6 +24,25 @@ class Settings(BaseSettings):
     database_pool_size: int = Field(default=5, ge=1)
     database_max_overflow: int = Field(default=5, ge=0)
     supabase_url: AnyHttpUrl | None = None
+    cors_origins: list[str] = Field(default_factory=list)
+
+    @field_validator("cors_origins")
+    @classmethod
+    def validate_cors_origins(cls, origins: list[str]) -> list[str]:
+        for origin in origins:
+            url = AnyHttpUrl(origin)
+            if (
+                origin != str(url).rstrip("/")
+                or url.path not in (None, "/")
+                or url.query
+                or url.fragment
+                or url.username
+                or url.password
+            ):
+                raise ValueError(
+                    "CORS_ORIGINS must contain HTTP origins without paths or credentials"
+                )
+        return list(dict.fromkeys(origins))
 
     @field_validator("supabase_url")
     @classmethod

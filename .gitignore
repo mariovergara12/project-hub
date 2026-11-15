@@ -34,3 +34,8 @@ coverage/
 build/
 .uv-cache/
 .python-version
+
+# Local demo handoff artifacts and sign-in credentials
+docs/frontend-handoff.md
+docs/demo-projects.json
+backend/.demo-accounts.json
