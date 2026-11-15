@@ -66,11 +66,15 @@ Add the frontend's address to `CORS_ORIGINS` in the backend environment file
 you are using. For example:
 
 ```dotenv
-CORS_ORIGINS='["http://localhost:5173","http://localhost:3000"]'
+CORS_ORIGINS='["http://localhost:5173","http://localhost:3000","https://project-hub-client-hazel.vercel.app"]'
 ```
 
 Use the exact address and port, with no trailing slash. Restart the API after
 changing this setting.
+For the hosted API, update its deployment environment and redeploy after review.
+Changing a local environment file does not change the hosted API. The latest
+check found the hosted frontend origin blocked; see the
+[API contract](backend-api-contract.md).
 
 The frontend signs in through Supabase and sends the access token with requests:
 

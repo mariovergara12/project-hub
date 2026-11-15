@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_session
+from app.core.responses import AUTH_ERROR_RESPONSES, ErrorResponse
 from app.core.security import CurrentUserId
 from app.models import Interest, Skill
 from app.models.enums import ProjectStatus, ProjectType
@@ -12,7 +13,7 @@ from app.modules.projects import repository, service
 from app.modules.projects.schemas import CatalogPage, ProjectPage, ProjectResponse
 from app.modules.users.service import IdentityNoLongerExists, read_me
 
-router = APIRouter(tags=["discovery"])
+router = APIRouter(tags=["discovery"], responses=AUTH_ERROR_RESPONSES)
 
 
 def discovery_user(
@@ -28,7 +29,11 @@ def discovery_user(
 
 DiscoveryUser = Annotated[UUID, Depends(discovery_user)]
 DatabaseSession = Annotated[Session, Depends(get_session)]
-PageLimit = Annotated[int, Query(ge=1, le=100)]
+PageLimit = Annotated[int, Query(ge=1, le=100, description="Page size; defaults to 20.")]
+PageCursor = Annotated[
+    UUID | None,
+    Query(description="Previous next_cursor; UUID ascending, exclusive. Omit on the first page."),
+]
 
 
 @router.get("/projects", response_model=ProjectPage)
@@ -36,13 +41,28 @@ def list_projects(
     user_id: DiscoveryUser,
     session: DatabaseSession,
     limit: PageLimit = 20,
-    cursor: UUID | None = None,
-    q: Annotated[str | None, Query(min_length=1, max_length=200)] = None,
+    cursor: PageCursor = None,
+    q: Annotated[
+        str | None,
+        Query(
+            min_length=1,
+            max_length=200,
+            description="Case-insensitive literal substring in title or description; trimmed.",
+        ),
+    ] = None,
     project_type: ProjectType | None = None,
     status: ProjectStatus | None = None,
     skill_id: UUID | None = None,
     interest_id: UUID | None = None,
 ) -> ProjectPage:
+    """List visible projects in ascending UUID order, combining filters with AND.
+
+    Open projects are visible to every signed-in user. Other statuses require
+    ownership or membership; the status filter never grants access. No status
+    filter means all visible statuses. Unknown catalog UUIDs return an empty page.
+    Keep filters unchanged between pages. next_cursor=null means the end;
+    an empty page is {"items": [], "next_cursor": null}. No total count is returned.
+    """
     rows = repository.list_projects(
         session,
         user_id,
@@ -57,10 +77,17 @@ def list_projects(
     return service.project_page(rows, limit)
 
 
-@router.get("/projects/{project_id}", response_model=ProjectResponse)
+@router.get(
+    "/projects/{project_id}",
+    response_model=ProjectResponse,
+    responses={
+        404: {"model": ErrorResponse, "description": "Project is hidden or does not exist."}
+    },
+)
 def get_project(
     project_id: UUID, user_id: DiscoveryUser, session: DatabaseSession
 ) -> ProjectResponse:
+    """Return the same project fields as a list item, with a public owner summary."""
     row = repository.get_project(session, user_id, project_id)
     if row is None:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -72,8 +99,9 @@ def list_skills(
     user_id: DiscoveryUser,
     session: DatabaseSession,
     limit: PageLimit = 20,
-    cursor: UUID | None = None,
+    cursor: PageCursor = None,
 ) -> CatalogPage:
+    """List skill IDs/names in ascending UUID order; next_cursor=null ends pagination."""
     return service.catalog_page(session, Skill, limit=limit, cursor=cursor)
 
 
@@ -82,6 +110,7 @@ def list_interests(
     user_id: DiscoveryUser,
     session: DatabaseSession,
     limit: PageLimit = 20,
-    cursor: UUID | None = None,
+    cursor: PageCursor = None,
 ) -> CatalogPage:
+    """List interest IDs/names in ascending UUID order; next_cursor=null ends pagination."""
     return service.catalog_page(session, Interest, limit=limit, cursor=cursor)

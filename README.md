@@ -8,6 +8,7 @@ The backend uses FastAPI, SQLAlchemy, PostgreSQL, and Supabase Auth.
 - [Hosted API documentation](https://project-hub-api-ruby.vercel.app/docs)
 - [Supabase setup and local tests](docs/database-setup.md)
 - [Backend architecture](docs/backend-architecture.md)
+- [Frontend API contract](docs/backend-api-contract.md)
 - [Current progress](progress.md)
 
 After configuring `backend/.env.supabase`, run from `backend/`:

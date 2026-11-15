@@ -39,3 +39,6 @@ build/
 docs/frontend-handoff.md
 docs/demo-projects.json
 backend/.demo-accounts.json
+
+# Local implementation plan; never publish it.
+/docs/backend-implementation-plan.md

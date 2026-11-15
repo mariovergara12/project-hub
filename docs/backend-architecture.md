@@ -50,6 +50,8 @@ All endpoints except `/health` require a Supabase access token.
 Project lists support search and filters. List responses include a
 `next_cursor` value for loading the next page. Full request and response details
 are available at `/docs` while the API is running.
+For field names, null handling, pagination, error formats, and integration checks,
+see the [frontend API contract](backend-api-contract.md).
 
 ## Main data
 
