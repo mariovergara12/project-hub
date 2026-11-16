@@ -17,10 +17,10 @@ const navigate = useNavigate();
                         event.preventDefault();
                         const whichButton = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement;
                         const formData = new FormData(event.currentTarget);
-                        const username = formData.get('usernameInput');
+                        const email = formData.get('emailInput');
                         const password = formData.get('passwordInput');
 
-                        console.log(username);
+                        console.log(email);
                         console.log(password);
 
                         console.log(whichButton.value);
@@ -37,12 +37,12 @@ const navigate = useNavigate();
 
 
                         <div className="form-group">
-                            <label htmlFor="username">Username</label>
+                            <label htmlFor="email">Email</label>
                             <input
                                 type="text"
                                 id="userLogin"
-                                name="usernameInput"
-                                placeholder="Enter your username"
+                                name="emailInput"
+                                placeholder="Enter your email"
                             />
                         </div>
 
