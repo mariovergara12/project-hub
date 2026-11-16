@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import './App.css'
+import { AccountAccess } from './AccountAccess';
 
 export function ProjectHub() {
     const navigate = useNavigate();
@@ -32,7 +33,7 @@ export function ProjectHub() {
                     </div>
 
                 </header>
-
+                <AccountAccess />
 
                 <form onSubmit={async(event) => {
                     event.preventDefault();

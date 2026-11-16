@@ -2,17 +2,23 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Login } from './Login';
 import { ProjectHub } from './Coursepage';
 import { Profile } from './Profile';
+import { AuthProvider } from './AuthProvider';
+import { RequireAuth } from './RequireAuth';
+import './App.css';
 
 function App() {
     return (
-        <BrowserRouter>
-          <Routes>
-            <Route path='/' element={<Login/>}/>
-            <Route path='/main' element={<ProjectHub/>}/>
-            <Route path='/profile' element={<Profile/>}/>
-          </Routes>
-        </BrowserRouter>
-
+        <AuthProvider>
+            <BrowserRouter>
+                <Routes>
+                    <Route path='/' element={<Login/>}/>
+                    <Route element={<RequireAuth/>}>
+                        <Route path='/main' element={<ProjectHub/>}/>
+                        <Route path='/profile' element={<Profile/>}/>
+                    </Route>
+                </Routes>
+            </BrowserRouter>
+        </AuthProvider>
     );
 }
 

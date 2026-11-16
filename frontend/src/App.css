@@ -57,3 +57,54 @@
     align-items: center;
     width: 100%;
 }
+
+.login-container {
+    transform: none;
+    padding: 32px 16px;
+}
+
+.login-card {
+    width: min(100%, 380px);
+}
+
+.login-card form, .account-access {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.form-group input {
+    padding: 10px;
+}
+
+.auth-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+}
+
+.account-access {
+    margin: 24px auto;
+    padding: 20px;
+    max-width: 640px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    overflow-wrap: anywhere;
+}
+
+.account-access > button {
+    align-self: flex-start;
+}
+
+button, summary {
+    cursor: pointer;
+}
+
+button:disabled {
+    cursor: wait;
+}
+
+[role="alert"] {
+    color: #b42318;
+}
