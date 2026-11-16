@@ -35,7 +35,9 @@ def test_private_table_migration_revokes_inherited_and_future_grants(db_session:
         revision.module.upgrade()
 
     db_session.execute(text("CREATE TABLE public.private_table_probe (id integer PRIMARY KEY)"))
-    for table in (*Base.metadata.tables, "alembic_version", "private_table_probe"):
+    # This older revision secures its original tables; the audit table has a later migration.
+    original_tables = set(Base.metadata.tables) - {"faculty_role_changes"}
+    for table in (*original_tables, "alembic_version", "private_table_probe"):
         for role in ("anon", "authenticated"):
             assert not db_session.scalar(
                 text(

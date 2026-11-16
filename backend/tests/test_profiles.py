@@ -88,6 +88,8 @@ def test_self_profile_flow_and_idempotent_provisioning(profiles: ProfileContext)
             "role": "student",
             "faculty_verified_at": None,
             "profile": None,
+            "skills": [],
+            "interests": [],
         }
     response = client.patch(
         "/me/profile",

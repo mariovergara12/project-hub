@@ -21,7 +21,7 @@ def discovery_user(
 ) -> UUID:
     # Checks the hosted Auth FK even for an unexpired token belonging to a deleted account.
     try:
-        read_me(session, user_id)
+        read_me(session, user_id, include_selections=False)
     except IdentityNoLongerExists:
         raise HTTPException(status_code=401, detail="Account no longer exists") from None
     return user_id

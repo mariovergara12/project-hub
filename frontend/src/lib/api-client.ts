@@ -99,5 +99,8 @@ export function createApiClient({ baseUrl, auth, fetcher = fetch }: {
         patch: <T>(path: string, body: unknown, signal?: AbortSignal) => request<T>(path, {
             method: 'PATCH', body: JSON.stringify(body), signal,
         }),
+        put: <T>(path: string, body: unknown, signal?: AbortSignal) => request<T>(path, {
+            method: 'PUT', body: JSON.stringify(body), signal,
+        }),
     };
 }

@@ -25,7 +25,7 @@ from app.models.enums import ApplicationStatus, ProjectStatus, ProjectType, User
 
 def test_all_models_import_and_map() -> None:
     configure_mappers()
-    assert len(Base.metadata.tables) == 12
+    assert len(Base.metadata.tables) == 13
     assert "auth.users" not in Base.metadata.tables
 
 

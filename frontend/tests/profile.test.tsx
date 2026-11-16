@@ -10,8 +10,9 @@ const mocks = vi.hoisted(() => ({ patch: vi.fn(), resource: vi.fn(), reload: vi.
 vi.mock('../src/api', () => ({ api: { patch: mocks.patch } }));
 vi.mock('../src/use-resource', () => ({ useResource: mocks.resource }));
 vi.mock('../src/AccountAccess', () => ({ AccountAccess: () => null }));
+vi.mock('../src/ProfileSelections', () => ({ ProfileSelections: () => null }));
 
-const me: Me = { id: 'user-a', role: 'student', faculty_verified_at: null, profile: null };
+const me: Me = { id: 'user-a', role: 'student', faculty_verified_at: null, profile: null, skills: [], interests: [] };
 beforeEach(() => {
     vi.resetAllMocks();
     mocks.resource.mockReturnValue({ data: me, loading: false, reload: mocks.reload });

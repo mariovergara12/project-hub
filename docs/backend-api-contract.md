@@ -2,6 +2,8 @@
 
 Checked against the hosted API and backend source on November 16, 2026.
 This covers the existing sign-in, profile, project browsing, and catalog features.
+Profile selection endpoints and the audit migration below are pending review and
+release. Their browser checks use the local API and a separate local database.
 
 ## Connection and identity
 
@@ -40,15 +42,18 @@ can remain valid after sign-out; the frontend must discard its session and data.
   "id": "<signed-in-user-uuid>",
   "role": "student",
   "faculty_verified_at": null,
-  "profile": null
+  "profile": null,
+  "skills": [],
+  "interests": []
 }
 ```
 
 The example uses a placeholder UUID. `role` is `student`, `faculty`, or
 `administrator`. `faculty_verified_at` is an ISO 8601 timestamp or null. A faculty
 role alone does not establish verification. `profile: null` means the user has
-not created a profile; show the profile creation form. Profile skills/interests
-are not yet returned by this endpoint.
+not created a profile; show the profile creation form. The updated backend adds
+`skills` and `interests` as arrays of `{id, name}`, sorted by name. Empty arrays
+mean no selections. Existing fields keep their names and meanings.
 
 `PATCH /me/profile` creates or partially updates the current user's profile.
 On success it returns the profile object directly, rather than the `/me` wrapper.
@@ -78,6 +83,31 @@ Unknown fields are rejected with 422, including `role`, `faculty_verified_at`,
 `user_id`, `skills`, and `interests`. The input schema currently marks
 `display_name` as nullable even though runtime validation rejects explicit null;
 the rule above and the endpoint description specify its actual behavior.
+
+## Profile skills and interests
+
+These endpoints are implemented locally and await release:
+
+| Method | Endpoint | Request | Response |
+| --- | --- | --- | --- |
+| PUT | `/me/skills` | `{"skill_ids":["<catalog-uuid>"]}` | `{"skills":[{"id":"<uuid>","name":"react"}]}` |
+| PUT | `/me/interests` | `{"interest_ids":["<catalog-uuid>"]}` | `{"interests":[{"id":"<uuid>","name":"robotics"}]}` |
+
+Each request replaces only that signed-in user's selected list. Send an empty
+array to clear it. Up to 50 unique catalog IDs are allowed; names, duplicate IDs,
+unknown IDs, malformed UUIDs, missing lists, null, and extra fields return 422.
+Unknown IDs use a string `detail`; schema errors use the usual array format.
+
+The full replacement commits in one transaction. Invalid or failed requests leave
+the previous selection intact. Repeating a request gives the same saved list.
+Concurrent saves for one user run in sequence. Profile fields, roles, and the
+other catalog's selection are preserved. `GET /me` returns the saved choices
+after reload. There is no route for editing another user's choices.
+
+The frontend saves skills and interests separately and keeps unsaved choices
+after a failed request. Catalog creation and account roles remain unavailable
+through profile requests. Faculty changes use a
+[trusted operator command](faculty-operations.md).
 
 ## Project list and detail
 
@@ -190,8 +220,10 @@ origin. The configured value is:
 CORS_ORIGINS='["http://localhost:5173","http://localhost:3000","https://project-hub-client-hazel.vercel.app"]'
 ```
 
-Use exact origins without a trailing slash. Current CORS permits GET/PATCH and
-Authorization/Content-Type; no cookie credentials are needed. Preview origins
+Use exact origins without a trailing slash. The hosted API currently permits
+GET/PATCH; the updated backend adds PUT for selections. Deploy that backend
+before publishing the updated selectors. Authorization/Content-Type are allowed;
+no cookie credentials are needed. Preview origins
 must be added individually when needed.
 
 ## Browser checks

@@ -4,7 +4,10 @@ export type ProfileData = {
     major: string | null; department: string | null; bio: string | null;
     availability_hours: number | null; learning_goals: string | null; experience_years: number | null;
 };
-export type Me = { id: string; role: Role; faculty_verified_at: string | null; profile: ProfileData | null };
+export type Me = {
+    id: string; role: Role; faculty_verified_at: string | null; profile: ProfileData | null;
+    skills: CatalogItem[]; interests: CatalogItem[];
+};
 export type CatalogItem = { id: string; name: string };
 export type Page<T> = { items: T[]; next_cursor: string | null };
 export type Project = {

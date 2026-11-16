@@ -5,6 +5,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models.enums import UserRole
+from app.modules.projects.schemas import CatalogItem
 
 Name = Annotated[str, Field(min_length=1, max_length=150)]
 
@@ -50,3 +51,37 @@ class MeResponse(BaseModel):
     role: UserRole
     faculty_verified_at: datetime | None
     profile: ProfileResponse | None
+    skills: list[CatalogItem]
+    interests: list[CatalogItem]
+
+
+class SkillSelectionUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    skill_ids: list[UUID] = Field(max_length=50)
+
+    @field_validator("skill_ids")
+    @classmethod
+    def unique_ids(cls, values: list[UUID]) -> list[UUID]:
+        if len(values) != len(set(values)):
+            raise ValueError("skill_ids must not contain duplicates")
+        return values
+
+
+class InterestSelectionUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    interest_ids: list[UUID] = Field(max_length=50)
+
+    @field_validator("interest_ids")
+    @classmethod
+    def unique_ids(cls, values: list[UUID]) -> list[UUID]:
+        if len(values) != len(set(values)):
+            raise ValueError("interest_ids must not contain duplicates")
+        return values
+
+
+class SkillsResponse(BaseModel):
+    skills: list[CatalogItem]
+
+
+class InterestsResponse(BaseModel):
+    interests: list[CatalogItem]

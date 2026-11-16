@@ -13,6 +13,8 @@ from urllib.request import Request, urlopen
 from uuid import UUID, uuid5
 
 import certifi
+from alembic.config import Config
+from alembic.script import ScriptDirectory
 from pydantic import SecretStr
 from sqlalchemy import select, text
 from sqlalchemy.dialects.postgresql import insert
@@ -159,19 +161,23 @@ def insert_missing(session: Session, model: type, values: dict) -> None:
 
 def seed_data(session: Session, identities: dict[str, UUID]) -> dict[str, int]:
     """Caller owns the transaction. Reuse canonical catalogs and preserve existing demo edits."""
+    created_users = set()
     for user in DATA["users"]:
         identity = identities[user["slug"]]
-        insert_missing(
-            session,
-            User,
-            {
-                "id": identity,
-                "role": user["role"],
-                "faculty_verified_at": (
+        created = session.scalar(
+            insert(User)
+            .values(
+                id=identity,
+                role=user["role"],
+                faculty_verified_at=(
                     datetime(2026, 11, 1, tzinfo=UTC) if user["role"] == "faculty" else None
                 ),
-            },
+            )
+            .on_conflict_do_nothing()
+            .returning(User.id)
         )
+        if created is not None:
+            created_users.add(created)
         insert_missing(
             session,
             Profile,
@@ -204,6 +210,9 @@ def seed_data(session: Session, identities: dict[str, UUID]) -> dict[str, int]:
         )
 
     for user in DATA["users"]:
+        # Existing selections, including an intentional empty set, belong to the user.
+        if identities[user["slug"]] not in created_users:
+            continue
         for kind, model, column in (
             ("skills", UserSkill, "skill_id"),
             ("interests", UserInterest, "interest_id"),
@@ -299,7 +308,10 @@ def main() -> None:
             # duplicate accounts or race while updating the local credential handoff.
             session.execute(text("SELECT pg_advisory_xact_lock(742091326)"))
             revision = session.scalar(text("SELECT version_num FROM alembic_version"))
-            if revision != "cc1194778d46":
+            expected_revision = ScriptDirectory.from_config(
+                Config(str(BACKEND_DIR / "alembic.ini"))
+            ).get_current_head()
+            if revision != expected_revision:
                 raise SeedError("Run alembic upgrade head before seeding")
             if hosted and not session.scalar(
                 text(

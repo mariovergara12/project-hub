@@ -1,5 +1,6 @@
 """Import all models here so Alembic and SQLAlchemy see the complete schema."""
 
+from app.models.administration import FacultyRoleChange
 from app.models.base import Base
 from app.models.catalog import (
     Interest,
@@ -16,6 +17,7 @@ from app.models.users import Profile, User
 __all__ = [
     "Application",
     "Base",
+    "FacultyRoleChange",
     "Interest",
     "Membership",
     "Milestone",

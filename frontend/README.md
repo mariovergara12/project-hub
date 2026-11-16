@@ -26,13 +26,16 @@ Use either origin when testing locally.
 - `/projects/:projectId`: project details, owner summary, requirements, and capacity.
 - `/profile`: create or edit your profile and view the server's role/verification.
 
+The updated profile also saves selected skills and interests through their own
+buttons. It requires the updated backend endpoints, currently pending release.
+Local verification uses an isolated API/database; hosted application data is unchanged.
+
 Protected screens require a session. Logging out removes account data from the
 screen. A single API helper attaches the current access token, handles both
 FastAPI error formats, and allows at most one refresh/retry after a 401.
 Requests are cancelled when filters or accounts change.
 
-Profile skill/interest editing, project management, and applications are not
-available yet. Catalog filters use the existing read-only endpoints.
+Project management and applications are not available yet.
 
 ## Checks
 

@@ -5,6 +5,7 @@ import { api } from './api';
 import { AccountAccess } from './AccountAccess';
 import { useResource } from './use-resource';
 import type { Me, ProfileData } from './types';
+import { ProfileSelections } from './ProfileSelections';
 
 function ProfileForm({ me, saved }: { me: Me; saved: () => void }) {
     const [pending, setPending] = useState(false);
@@ -64,6 +65,7 @@ export function Profile() {
             <p>Role: <strong>{resource.data.role}</strong></p>
             <p>Faculty verification: {resource.data.faculty_verified_at ? 'Verified' : 'Not verified'}</p>
             <ProfileForm me={resource.data} saved={() => { setMessage('Profile saved.'); resource.reload(); }} />
+            <ProfileSelections me={resource.data} />
         </section>}
     </main>;
 }

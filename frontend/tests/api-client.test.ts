@@ -21,6 +21,16 @@ const json = (status: number, body: unknown = {}) => new Response(JSON.stringify
 });
 
 describe('authenticated API requests', () => {
+    it('sends selection replacements through the same authenticated client', async () => {
+        const { api, fetcher } = setup();
+        fetcher.mockResolvedValue(json(200, { skills: [] }));
+        await expect(api.put('/me/skills', { skill_ids: [] })).resolves.toEqual({ skills: [] });
+        const [url, init] = fetcher.mock.calls[0];
+        expect(url).toBe('https://api.example/me/skills');
+        expect(init?.method).toBe('PUT');
+        expect(init?.body).toBe('{"skill_ids":[]}');
+        expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer old-token');
+    });
     it('attaches the current token and serializes a profile update including zero/null', async () => {
         const { api, fetcher } = setup();
         fetcher.mockResolvedValue(json(200, { bio: null, availability_hours: 0 }));

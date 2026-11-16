@@ -34,7 +34,9 @@ PROJECT_HUB_ENV_FILE=.env.supabase uv run uvicorn app.main:create_app --factory
 ```
 
 `alembic upgrade head` brings the database structure up to date.
-`alembic current` shows its migration version, currently `cc1194778d46`.
+`alembic current` shows the selected database's migration version. The shared
+database was last verified at `cc1194778d46`. Local head `71d9cfa35335` adds the
+private faculty audit table and is pending review before shared application.
 Use one API worker with the small connection pool in the example.
 The API documentation is at <http://127.0.0.1:8000/docs>.
 
@@ -102,7 +104,8 @@ the seed command and stays out of frontend code.
 
 The script creates fictional accounts, profiles, projects, skills, and interests.
 Running it again adds missing records without resetting existing edits or
-passwords. Demo passwords are saved in the private, ignored file
+passwords. User skills/interests are seeded only for new accounts, so rerunning
+does not undo changed or cleared selections. Demo passwords are saved in the private, ignored file
 `backend/.demo-accounts.json`.
 
 ## Run database tests locally

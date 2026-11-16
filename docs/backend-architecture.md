@@ -42,6 +42,8 @@ All endpoints except `/health` require a Supabase access token.
 | GET | `/health` | Checks that the API is running; does not check the database |
 | GET | `/me` | Returns the signed-in user's account and profile |
 | PATCH | `/me/profile` | Creates or updates the user's profile |
+| PUT | `/me/skills` | Replaces the user's skills; pending release |
+| PUT | `/me/interests` | Replaces the user's interests; pending release |
 | GET | `/projects` | Lists projects the user can see |
 | GET | `/projects/{id}` | Returns one project the user can see |
 | GET | `/skills` | Lists available skills |
@@ -71,6 +73,8 @@ person and project. Skill and interest names are lowercase and unique.
 - Other project states are visible only to the owner or existing team members.
 - Users cannot change their account role or faculty verification through profile edits.
 - A faculty role does not automatically mean the account is verified.
+- A trusted terminal command manages faculty status with a private audit record;
+  see [faculty operations](faculty-operations.md). It has no HTTP endpoint.
 
 FastAPI enforces these rules. Database protections also block direct frontend
 access, but the backend's database connection can bypass those protections.

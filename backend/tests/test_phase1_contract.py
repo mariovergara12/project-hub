@@ -24,6 +24,8 @@ def test_openapi_documents_errors_and_bearer_auth(monkeypatch: pytest.MonkeyPatc
     for path, method in (
         ("/me", "get"),
         ("/me/profile", "patch"),
+        ("/me/skills", "put"),
+        ("/me/interests", "put"),
         ("/projects", "get"),
         ("/projects/{project_id}", "get"),
         ("/skills", "get"),
@@ -46,7 +48,12 @@ def test_openapi_documents_errors_and_bearer_auth(monkeypatch: pytest.MonkeyPatc
 
 @pytest.mark.parametrize(
     ("method", "path", "requested_headers"),
-    [("GET", "/projects", "authorization"), ("PATCH", "/me/profile", "authorization,content-type")],
+    [
+        ("GET", "/projects", "authorization"),
+        ("PATCH", "/me/profile", "authorization,content-type"),
+        ("PUT", "/me/skills", "authorization,content-type"),
+        ("PUT", "/me/interests", "authorization,content-type"),
+    ],
 )
 def test_hosted_origin_cors_and_auth_errors(
     monkeypatch: pytest.MonkeyPatch, method: str, path: str, requested_headers: str

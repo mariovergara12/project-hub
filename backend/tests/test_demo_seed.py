@@ -140,3 +140,24 @@ def test_cors_rejects_non_origins(origin: str) -> None:
         DemoSettings(
             _env_file=None, database_url="postgresql+psycopg://localhost/db", cors_origins=[origin]
         )
+
+
+@pytest.mark.integration
+def test_reseeding_preserves_changed_and_cleared_user_selections(db_session: Session) -> None:
+    from sqlalchemy import delete
+
+    from app.models import UserInterest
+
+    identities = {user["slug"]: demo_id("user", user["slug"]) for user in DATA["users"]}
+    seed_data(db_session, identities)
+    user_id = identities["maya"]
+    db_session.execute(delete(UserSkill).where(UserSkill.user_id == user_id))
+    db_session.execute(delete(UserInterest).where(UserInterest.user_id == user_id))
+    replacement = db_session.scalar(select(Interest).where(Interest.name == "robotics"))
+    db_session.add(UserInterest(user_id=user_id, interest_id=replacement.id))
+    db_session.flush()
+    seed_data(db_session, identities)
+    assert list(db_session.scalars(select(UserSkill).where(UserSkill.user_id == user_id))) == []
+    assert list(
+        db_session.scalars(select(UserInterest.interest_id).where(UserInterest.user_id == user_id))
+    ) == [replacement.id]
