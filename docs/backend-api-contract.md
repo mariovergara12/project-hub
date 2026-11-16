@@ -2,8 +2,9 @@
 
 Checked against the hosted API and backend source on November 16, 2026.
 This covers the existing sign-in, profile, project browsing, and catalog features.
-Profile selection endpoints and the audit migration below are pending review and
-release. Their browser checks use the local API and a separate local database.
+Profile selections are on the backend branch. Project management and its owner
+membership migration await review. Shared release and migrations are separate;
+new feature browser checks use the local API and a separate local database.
 
 ## Connection and identity
 
@@ -135,9 +136,9 @@ item. The detail URL does not use a different wrapper.
 boolean, rather than a timestamp. Owner summaries exclude email, bio, and private
 profile details. Linked skills/interests are sorted by name within a project.
 
-The current seed has no memberships, so its projects report `member_count: 0`.
-Ownership does not currently create a membership. Confirm whether owners should
-count as members before building project creation.
+The owner counts as one member. Creating a project inserts the owner membership
+in the same transaction. The migration backfills missing owners; existing
+memberships stay intact. Hosted counts retain their old values until migration.
 
 Every signed-in user can see open projects. Other statuses are visible only to
 their owner or an existing member. Without a status filter, the list includes
@@ -180,6 +181,45 @@ contains exactly `limit` items. An empty result is always
 `{"items":[],"next_cursor":null}`. Do not send `cursor=null` or an empty cursor
 string; omit the parameter. Concurrent data changes can change subsequent pages;
 the cursor does not provide a snapshot of the database.
+
+## Manage projects
+
+| Method | Endpoint | Behavior |
+| --- | --- | --- |
+| POST | `/projects` | Create a private draft with the caller as owner and member; returns 201 |
+| PATCH | `/projects/{id}` | Owner edits fields and requirements; returns the project |
+| PATCH | `/projects/{id}/status` | Owner sends `{"status":"open"}` to change status |
+| GET | `/me/projects` | Only owned projects, including drafts and archived projects |
+
+Create requires `title` (1–200 characters) and `description` (1–10,000), trimmed.
+`project_type` defaults to `student_project`. Optional integer fields are
+`weekly_hours` (0–168), `minimum_experience_years` (0–100), and `max_members`
+(1–100, including the owner). Null means unspecified or unlimited capacity.
+Numeric strings, booleans, unknown fields, and client-supplied ownership/status
+are rejected. No administrator bypass exists.
+
+Send `skills: [{"skill_id":"<catalog-uuid>","required":true}]` and
+`interest_ids: ["<catalog-uuid>"]`. Required defaults to true and must be boolean.
+Each list accepts at most 50 unique, known IDs. Empty arrays clear selections.
+Create defaults to empty lists. Edits preserve omitted fields; explicit null can
+clear only numeric fields. All field and link changes share one transaction.
+Capacity cannot be reduced below the saved membership count (409).
+
+Only verified faculty may create, edit, or publish research opportunities.
+Verification requires both the faculty role and a saved verification timestamp.
+An owner who loses verification may convert research to a student project or
+archive it. Starting/completing an existing research project remains available.
+
+Status follows `draft → open → in_progress → completed`. Any non-archived status
+may become `archived`. Repeating the current status is a no-op. Other transitions
+and all content edits of archived projects return 409. Archiving is permanent in
+this release. Open projects become private to owners/members when started.
+A hidden or missing project returns 404; a visible project edited by a non-owner
+returns 403. Ownership never changes through these endpoints.
+
+My Projects accepts `limit`, `cursor`, and optional `status`, using the same page
+shape and UUID ordering as discovery. Membership in another user's project does
+not put it in this list.
 
 ## Errors
 

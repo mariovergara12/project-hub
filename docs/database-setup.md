@@ -35,8 +35,10 @@ PROJECT_HUB_ENV_FILE=.env.supabase uv run uvicorn app.main:create_app --factory
 
 `alembic upgrade head` brings the database structure up to date.
 `alembic current` shows the selected database's migration version. The shared
-database was last verified at `cc1194778d46`. Local head `71d9cfa35335` adds the
-private faculty audit table and is pending review before shared application.
+database was last verified at `cc1194778d46`. The backend branch includes the private faculty audit table
+(`71d9cfa35335`) and owner membership backfill (`9eb18a4d2620`). Both remain
+pending shared application. Review the capacity guard in
+[project management](project-management.md) before upgrading a shared database.
 Use one API worker with the small connection pool in the example.
 The API documentation is at <http://127.0.0.1:8000/docs>.
 

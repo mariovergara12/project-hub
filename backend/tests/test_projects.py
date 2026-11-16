@@ -57,7 +57,7 @@ def test_discovery_list_and_detail_include_frontend_fields(demo: DemoContext) ->
         "role": "student",
         "faculty_verified": False,
     }
-    assert project["member_count"] == 0
+    assert project["member_count"] == 1
     assert project["weekly_hours"] == 6 and project["max_members"] == 5
     assert {skill["name"]: skill["required"] for skill in project["skills"]} == {
         "react": True,
@@ -92,7 +92,7 @@ def test_team_members_can_read_their_non_open_project(demo: DemoContext) -> None
         {"id": uuid4(), "project": project_id, "user": demo.identities["maya"]},
     )
     response = demo.profiles.client.get(f"/projects/{project_id}", headers=demo.headers())
-    assert response.status_code == 200 and response.json()["member_count"] == 1
+    assert response.status_code == 200 and response.json()["member_count"] == 2
     listed = demo.profiles.client.get("/projects", headers=demo.headers()).json()["items"]
     assert str(project_id) in {item["id"] for item in listed}
     assert (

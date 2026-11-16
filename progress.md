@@ -14,6 +14,8 @@ The frontend integration is on `backend` for comparison with the `frontend` bran
 - Profile skills/interests can be saved, replaced, and cleared in the local integration.
 - A trusted faculty command records role/verification changes with a private audit trail.
 - Project list/detail, search, filters, and pagination.
+- Local draft creation, owner editing, My Projects, and status changes through archive.
+- Owner membership and capacity checks, with a guarded legacy-data backfill.
 - Skills and interests catalogs.
 - Private projects visible only to owners and team members.
 - Loading, empty, signed-out, and failed-request states.
@@ -40,8 +42,8 @@ for the command and release order.
 
 ## Checks
 
-- All 184 backend tests, Ruff, and migration checks passed.
-- All 36 frontend tests, ESLint, and the production build passed.
+- All 235 backend tests, Ruff, and migration checks passed.
+- All 45 frontend tests, ESLint, and the production build passed.
 - Dependency audit reported no known vulnerabilities.
 - Two demo users completed browser checks against the hosted API from localhost.
 - Profile edits and zero hours survived reload; original demo values were restored.
@@ -50,7 +52,7 @@ for the command and release order.
 - Account switching showed the correct profile. Sign-out protected direct profile links.
 - Automated tests cover expired-token retries, failed refresh, service errors,
   duplicate submissions, and late responses from a previous account.
-- Browser error/warning logs were empty.
+- Earlier hosted integration checks had no browser errors or warnings.
 - Local browser checks confirmed saved selections after reload, clearing one list
   without changing the other, and separate selections for a second account.
 - A local-only faculty command passed dry-run and apply checks; the browser showed
@@ -58,11 +60,22 @@ for the command and release order.
 - Tests cover unknown/duplicate/oversized lists, write rollback, concurrent saves,
   role/audit atomicity, audit privacy, and preserving selections when reseeding.
 
+Project management is implemented locally and awaits review. The owner counts
+as a member. Migration `9eb18a4d2620` preserves existing memberships and stops if
+adding a missing owner would exceed capacity. It has only been applied locally.
+See [project management](docs/project-management.md) for release details.
+
+New checks confirmed draft privacy with two real demo sign-ins against the local
+API, My Projects isolation, saved/cleared project inputs, published search
+visibility, owner-only controls, and progression through read-only archive.
+Tests cover invalid transitions, faculty permissions, rollback after a simulated
+write failure, and concurrent edits without mixing fields and requirements.
+New screens load separately to keep the production build free of size warnings.
+
 ## Remaining work
 
-Apply the reviewed migration and
-release the API before publishing the updated selectors. Continue comparing the
-frontend versions before merging into `main`. Project management, applications,
-and teams follow separately.
+Review the project management changes, apply the reviewed migrations, and
+release the API before publishing the updated frontend. Continue comparing the
+frontend versions before merging into `main`. Applications and teams follow.
 
 The implementation plan remains local and ignored by Git.

@@ -5,12 +5,19 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_session
-from app.core.responses import AUTH_ERROR_RESPONSES, ErrorResponse
+from app.core.responses import AUTH_ERROR_RESPONSES, ErrorResponse, ProfileValidationErrorResponse
 from app.core.security import CurrentUserId
 from app.models import Interest, Skill
 from app.models.enums import ProjectStatus, ProjectType
 from app.modules.projects import repository, service
-from app.modules.projects.schemas import CatalogPage, ProjectPage, ProjectResponse
+from app.modules.projects.schemas import (
+    CatalogPage,
+    ProjectCreate,
+    ProjectPage,
+    ProjectResponse,
+    ProjectStatusUpdate,
+    ProjectUpdate,
+)
 from app.modules.users.service import IdentityNoLongerExists, read_me
 
 router = APIRouter(tags=["discovery"], responses=AUTH_ERROR_RESPONSES)
@@ -114,3 +121,67 @@ def list_interests(
 ) -> CatalogPage:
     """List interest IDs/names in ascending UUID order; next_cursor=null ends pagination."""
     return service.catalog_page(session, Interest, limit=limit, cursor=cursor)
+
+
+MANAGEMENT_ERRORS = {
+    code: {"model": ErrorResponse, "description": description}
+    for code, description in {
+        403: "Owner-only action or verified faculty required.",
+        404: "Project is hidden or does not exist.",
+        409: "Invalid transition, archived project, or capacity below current membership.",
+    }.items()
+}
+MANAGEMENT_ERRORS[422] = {
+    "model": ProfileValidationErrorResponse,
+    "description": "Invalid fields or unknown catalog IDs.",
+}
+
+
+def perform_write(session, user_id, **kwargs):
+    try:
+        return service.write_project(session, user_id, **kwargs)
+    except service.ProjectError as exc:
+        raise HTTPException(status_code=exc.status, detail=str(exc)) from None
+    except IdentityNoLongerExists:
+        raise HTTPException(status_code=401, detail="Account no longer exists") from None
+
+
+@router.post(
+    "/projects", response_model=ProjectResponse, status_code=201, responses=MANAGEMENT_ERRORS
+)
+def create_project(changes: ProjectCreate, user_id: CurrentUserId, session: DatabaseSession):
+    """Create a draft and its owner membership atomically. Ownership comes from the token."""
+    return perform_write(session, user_id, changes=changes)
+
+
+@router.patch("/projects/{project_id}", response_model=ProjectResponse, responses=MANAGEMENT_ERRORS)
+def update_project(
+    project_id: UUID, changes: ProjectUpdate, user_id: CurrentUserId, session: DatabaseSession
+):
+    """Owner-only partial edit. Omitted fields persist; empty selections clear links."""
+    return perform_write(session, user_id, project_id=project_id, changes=changes)
+
+
+@router.patch(
+    "/projects/{project_id}/status", response_model=ProjectResponse, responses=MANAGEMENT_ERRORS
+)
+def change_status(
+    project_id: UUID, changes: ProjectStatusUpdate, user_id: CurrentUserId, session: DatabaseSession
+):
+    """draft → open → in_progress → completed; archive from any non-archived status."""
+    return perform_write(session, user_id, project_id=project_id, status=changes.status)
+
+
+@router.get("/me/projects", response_model=ProjectPage)
+def my_projects(
+    user_id: DiscoveryUser,
+    session: DatabaseSession,
+    limit: PageLimit = 20,
+    cursor: PageCursor = None,
+    status: ProjectStatus | None = None,
+):
+    """List only owned projects, including private drafts and archived projects."""
+    return service.project_page(
+        repository.owned_projects(session, user_id, limit=limit, cursor=cursor, status=status),
+        limit,
+    )

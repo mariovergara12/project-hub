@@ -31,3 +31,8 @@ label, .form-group { display: flex; flex-direction: column; gap: .4rem; }
 .project-description { white-space: pre-wrap; }
 dt { font-weight: 600; margin-top: 1rem; }
 dd { margin: .35rem 0 0; }
+
+.project-selections { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: .75rem; padding: 1rem; border: 1px solid #d5dee8; border-radius: .4rem; }
+.project-selections legend { font-size: 1rem; }
+.project-selections.interests label { flex-direction: row; align-items: center; }
+.project-selections input[type="checkbox"] { width: auto; }

@@ -27,6 +27,10 @@ def test_openapi_documents_errors_and_bearer_auth(monkeypatch: pytest.MonkeyPatc
         ("/me/skills", "put"),
         ("/me/interests", "put"),
         ("/projects", "get"),
+        ("/projects", "post"),
+        ("/projects/{project_id}", "patch"),
+        ("/projects/{project_id}/status", "patch"),
+        ("/me/projects", "get"),
         ("/projects/{project_id}", "get"),
         ("/skills", "get"),
         ("/interests", "get"),
@@ -50,6 +54,8 @@ def test_openapi_documents_errors_and_bearer_auth(monkeypatch: pytest.MonkeyPatc
     ("method", "path", "requested_headers"),
     [
         ("GET", "/projects", "authorization"),
+        ("POST", "/projects", "authorization,content-type"),
+        ("PATCH", "/projects/example/status", "authorization,content-type"),
         ("PATCH", "/me/profile", "authorization,content-type"),
         ("PUT", "/me/skills", "authorization,content-type"),
         ("PUT", "/me/interests", "authorization,content-type"),
@@ -125,7 +131,7 @@ def test_project_nulls_and_empty_links_are_explicit(demo: DemoContext) -> None:
     )
     assert project["owner"]["display_name"] is None
     assert project["skills"] == project["interests"] == []
-    assert project["member_count"] == 0
+    assert project["member_count"] == 1
     listed = demo.profiles.client.get("/projects", headers=demo.headers()).json()["items"]
     assert next(item for item in listed if item["id"] == str(project_id)) == project
 

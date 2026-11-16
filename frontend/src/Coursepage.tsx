@@ -23,7 +23,7 @@ export function ProjectHub() {
         setParams(next);
     }
     return <main className="app-page">
-        <header className="app-header"><h1>Project Hub</h1><Link to="/profile">Your profile</Link></header>
+        <header className="app-header"><h1>Project Hub</h1><nav><Link to="/my-projects">My Projects</Link> · <Link to="/projects/new">Create project</Link> · <Link to="/profile">Your profile</Link></nav></header>
         <AccountAccess />
         <form onSubmit={search} className="filters" key={params.toString()}>
             <label>Search projects<input name="q" maxLength={200} placeholder="Title or description" defaultValue={params.get('q') || ''} /></label>

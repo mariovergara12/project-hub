@@ -16,7 +16,7 @@ import certifi
 from alembic.config import Config
 from alembic.script import ScriptDirectory
 from pydantic import SecretStr
-from sqlalchemy import select, text
+from sqlalchemy import func, select, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
@@ -24,6 +24,7 @@ from app.core.config import BACKEND_DIR, Settings, is_supabase_host
 from app.core.database import create_database_engine
 from app.models import (
     Interest,
+    Membership,
     Profile,
     Project,
     ProjectInterest,
@@ -161,6 +162,12 @@ def insert_missing(session: Session, model: type, values: dict) -> None:
 
 def seed_data(session: Session, identities: dict[str, UUID]) -> dict[str, int]:
     """Caller owns the transaction. Reuse canonical catalogs and preserve existing demo edits."""
+    # Serialize seed updates with user/project management using the same lock order.
+    list(
+        session.scalars(
+            select(User).where(User.id.in_(identities.values())).order_by(User.id).with_for_update()
+        )
+    )
     created_users = set()
     for user in DATA["users"]:
         identity = identities[user["slug"]]
@@ -227,7 +234,7 @@ def seed_data(session: Session, identities: dict[str, UUID]) -> dict[str, int]:
     for project in DATA["projects"]:
         project_id = demo_id("project", project["slug"])
         owner_id = identities[project["owner"]]
-        existing = session.get(Project, project_id)
+        existing = session.scalar(select(Project).where(Project.id == project_id).with_for_update())
         if existing is not None and existing.owner_id != owner_id:
             raise SeedError("A demo project ID belongs to another owner; refusing to change it")
         insert_missing(
@@ -245,6 +252,24 @@ def seed_data(session: Session, identities: dict[str, UUID]) -> dict[str, int]:
                 "max_members": project["max_members"],
             },
         )
+        owner_member = session.scalar(
+            select(Membership.id).where(
+                Membership.project_id == project_id, Membership.user_id == owner_id
+            )
+        )
+        if owner_member is None:
+            saved = session.get(Project, project_id)
+            count = session.scalar(
+                select(func.count())
+                .select_from(Membership)
+                .where(Membership.project_id == project_id)
+            )
+            if saved.max_members is not None and count >= saved.max_members:
+                raise SeedError("Adding the project owner would exceed team capacity")
+            insert_missing(session, Membership, {"project_id": project_id, "user_id": owner_id})
+        # Existing project edits and cleared requirements must survive reseeding.
+        if existing is not None:
+            continue
         for required, names in ((True, project["required"]), (False, project["optional"])):
             for name in names:
                 insert_missing(
