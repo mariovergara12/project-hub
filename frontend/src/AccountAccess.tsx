@@ -43,14 +43,14 @@ export function AccountAccess() {
         <section className="account-access" aria-label="Your account">
             <p>Signed in as <strong>{session?.user.email}</strong></p>
             <button onClick={signOut} disabled={pending}>Log Out</button>
-            <details>
+            {/* <details>
                 <summary>API testing</summary>
                 <p>Copy your current access token to try protected endpoints in the API docs.</p>
                 <div className="auth-actions">
                     <button onClick={copyToken} disabled={pending}>Copy API token</button>
                     <a href="https://project-hub-api-ruby.vercel.app/docs" target="_blank" rel="noreferrer">Open API docs</a>
                 </div>
-            </details>
+            </details> */}
             {message && <p role="status">{message}</p>}
             {error && <p role="alert">{error}</p>}
         </section>

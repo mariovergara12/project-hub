@@ -108,3 +108,10 @@ button:disabled {
 [role="alert"] {
     color: #b42318;
 }
+
+.project-cards {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+}
