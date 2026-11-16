@@ -72,9 +72,8 @@ CORS_ORIGINS='["http://localhost:5173","http://localhost:3000","https://project-
 Use the exact address and port, with no trailing slash. Restart the API after
 changing this setting.
 For the hosted API, update its deployment environment and redeploy after review.
-Changing a local environment file does not change the hosted API. The latest
-check found the hosted frontend origin blocked; see the
-[API contract](backend-api-contract.md).
+Changing a local environment file does not change the hosted API. The hosted
+API now allows the frontend origin; see the [API contract](backend-api-contract.md).
 
 The frontend signs in through Supabase and sends the access token with requests:
 

@@ -20,3 +20,5 @@ PROJECT_HUB_ENV_FILE=.env.supabase uv run uvicorn app.main:create_app --factory 
 ```
 
 Interactive API documentation is available at <http://127.0.0.1:8000/docs>.
+
+To run the frontend, follow [frontend setup](frontend/README.md).

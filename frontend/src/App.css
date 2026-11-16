@@ -1,0 +1,33 @@
+:root { font-family: system-ui, sans-serif; color: #172638; background: #f5f7fa; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+a { color: #175b9f; }
+button, input, select, textarea { font: inherit; }
+button { cursor: pointer; padding: .6rem 1rem; border: 1px solid #aebccc; border-radius: .4rem; background: white; }
+button:hover { background: #edf4fc; }
+button:disabled { cursor: wait; opacity: .65; }
+input, select, textarea { width: 100%; padding: .65rem; border: 1px solid #aebccc; border-radius: .35rem; background: white; }
+textarea { min-height: 6rem; resize: vertical; }
+label, .form-group { display: flex; flex-direction: column; gap: .4rem; }
+:focus-visible { outline: 3px solid #5295db; outline-offset: 3px; }
+[role="alert"] { color: #a1231a; }
+.app-page, .login-page { max-width: 1100px; margin: auto; padding: 1.5rem; }
+.app-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+.account-access { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; margin: 1.5rem 0; overflow-wrap: anywhere; }
+.account-access p { margin: 0; }
+.login-container { max-width: 430px; margin: 3rem auto; }
+.login-card, .profile-panel, .project-detail { padding: 1.5rem; border: 1px solid #d5dee8; border-radius: .65rem; background: white; }
+.login-card form, .profile-fields { display: grid; gap: 1rem; }
+.auth-actions, .pagination { display: flex; flex-wrap: wrap; gap: .75rem; }
+.filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1rem; align-items: end; margin: 2rem 0; }
+.project-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 1rem; }
+.project-card { padding: 1.5rem; border: 1px solid #d5dee8; border-radius: .65rem; background: white; overflow-wrap: anywhere; }
+.project-card h2 { font-size: 1.3rem; }
+.project-meta { text-transform: capitalize; color: #4e627a; font-size: .85rem; }
+.pagination { margin-top: 1.5rem; }
+.profile-panel { max-width: 700px; }
+.profile-fields { border: 0; padding: 0; margin: 1rem 0; }
+.profile-fields legend { font-size: 1.25rem; margin-bottom: 1rem; }
+.project-description { white-space: pre-wrap; }
+dt { font-weight: 600; margin-top: 1rem; }
+dd { margin: .35rem 0 0; }

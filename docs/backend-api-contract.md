@@ -1,6 +1,6 @@
 # Frontend API contract
 
-Checked against the hosted `/openapi.json` and backend source on November 14, 2026.
+Checked against the hosted API and backend source on November 16, 2026.
 This covers the existing sign-in, profile, project browsing, and catalog features.
 
 ## Connection and identity
@@ -181,14 +181,10 @@ the frontend helper should still present a failed-request state.
 
 ## CORS
 
-On November 14 the hosted API returned **400 Disallowed CORS origin** for a PATCH
-preflight from `https://project-hub-client-hazel.vercel.app`. Server-side API
-checks can pass while browser requests are blocked by this setting.
-
-The example environment files now include the hosted frontend. Existing private
-files and the deployed environment are not changed by those examples. Set this
-value in the API's production environment after review and
-redeploy for it to take effect:
+The hosted API now permits the frontend origin. Its CORS setting was updated
+for Production and Preview, and the existing production API was redeployed.
+The hosted frontend's PATCH preflight returned 200 with the correct allowed
+origin. The configured value is:
 
 ```dotenv
 CORS_ORIGINS='["http://localhost:5173","http://localhost:3000","https://project-hub-client-hazel.vercel.app"]'
@@ -200,7 +196,8 @@ must be added individually when needed.
 
 ## Browser checks
 
-Connect the existing screens and check them using two demo accounts:
+These checks passed using the local frontend against the hosted API with two
+demo accounts. Repeat them on the hosted frontend after release:
 
 1. Sign in, read the account, create/update a profile, and reload saved values.
 2. Browse list/detail, use catalog filters, and load subsequent pages.
