@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuth } from './auth-context';
-import { supabase } from './lib/supabase';
+import { useAuth } from '../auth-context';
+import { supabase } from '../lib/supabase';
 
 export function Login() {
     const { session, loading } = useAuth();
