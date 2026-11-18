@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { api } from './api';
 import { Link, useParams } from 'react-router-dom';
 import { AccountAccess } from './AccountAccess';
 import { ApiError } from './lib/api-client';
 import { useResource } from './use-resource';
 import type { Me, Project } from './types';
+
+const ProjectParticipation = lazy(() => import('./Collaboration').then(module => ({ default: module.ProjectParticipation })));
 
 export function ProjectDetail() {
     const { projectId } = useParams();
@@ -46,6 +48,7 @@ function ProjectDetailPage({ projectId }: { projectId: string }) {
         </div>}
         {value && <article className="project-detail">
             <h2>{value.title}</h2>
+            <nav><Link to={`/projects/${value.id}/team`}>View team</Link>{value.owner.id === me.data?.id && <> · <Link to={`/projects/${value.id}/applications`}>Review applications</Link></>}</nav>
             {value.owner.id === me.data?.id && <section aria-label="Manage project">
                 {value.status === 'draft' && <p>This is your private draft preview. Publish it to make it discoverable.</p>}
                 {value.status === 'archived' ? <p>Archived projects are read-only.</p> : <>
@@ -68,6 +71,7 @@ function ProjectDetailPage({ projectId }: { projectId: string }) {
                 <dt>Minimum experience (years)</dt><dd>{value.minimum_experience_years ?? 'Unspecified'}</dd>
                 <dt>Team</dt><dd>{value.member_count} {value.member_count === 1 ? 'member' : 'members'} · {value.max_members === null ? 'No capacity limit set' : `Capacity ${value.max_members}`}</dd>
             </dl>
+            {me.data && value.owner.id !== me.data.id && <Suspense fallback={<p role="status">Loading application options…</p>}><ProjectParticipation key={value.id} project={value} /></Suspense>}
             <h3>Skills</h3>
             {value.skills.length ? <ul>{value.skills.map(skill => <li key={skill.id}>{skill.name} · {skill.required ? 'Required' : 'Optional'}</li>)}</ul> : <p>No skills listed.</p>}
             <h3>Interests</h3>

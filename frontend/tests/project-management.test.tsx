@@ -11,6 +11,7 @@ import type { Me, Project } from '../src/types';
 const mocks = vi.hoisted(() => ({ post: vi.fn(), patch: vi.fn(), resource: vi.fn(), reload: vi.fn() }));
 vi.mock('../src/api', () => ({ api: { post: mocks.post, patch: mocks.patch }, loadCatalog: vi.fn() }));
 vi.mock('../src/use-resource', () => ({ useResource: mocks.resource }));
+vi.mock('../src/Collaboration', () => ({ ProjectParticipation: () => null }));
 vi.mock('../src/AccountAccess', () => ({ AccountAccess: () => null }));
 const me: Me = { id: 'owner', role: 'student', faculty_verified_at: null, profile: null, skills: [], interests: [] };
 const project: Project = {

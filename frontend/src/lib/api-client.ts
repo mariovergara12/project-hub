@@ -96,6 +96,7 @@ export function createApiClient({ baseUrl, auth, fetcher = fetch }: {
     }
     return {
         get: <T>(path: string, signal?: AbortSignal) => request<T>(path, { signal }),
+        delete: <T>(path: string, signal?: AbortSignal) => request<T>(path, { method: 'DELETE', signal }),
         post: <T>(path: string, body: unknown, signal?: AbortSignal) => request<T>(path, {
             method: 'POST', body: JSON.stringify(body), signal,
         }),

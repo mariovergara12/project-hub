@@ -9,7 +9,7 @@ export function MyProjects() {
     for (const name of ['status', 'cursor']) if (params.get(name)) query.set(name, params.get(name)!);
     const projects = useResource<Page<Project>>(`/me/projects?${query}`);
     return <main className="app-page">
-        <header><h1>My Projects</h1><nav><Link to="/main">Project Hub</Link> · <Link to="/projects/new">Create project</Link></nav></header>
+        <header><h1>My Projects</h1><nav><Link to="/main">Project Hub</Link> · <Link to="/my-applications">My Applications</Link> · <Link to="/projects/new">Create project</Link></nav></header>
         <AccountAccess />
         <p>Projects you own, including drafts and archived projects.</p>
         <label>Status<select value={params.get('status') || ''} onChange={event => setParams(event.target.value ? { status: event.target.value } : {})}>

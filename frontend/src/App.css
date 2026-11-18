@@ -36,3 +36,7 @@ dd { margin: .35rem 0 0; }
 .project-selections legend { font-size: 1rem; }
 .project-selections.interests label { flex-direction: row; align-items: center; }
 .project-selections input[type="checkbox"] { width: auto; }
+
+.team-list { display: grid; gap: 1rem; padding: 0; list-style: none; }
+.team-list li { padding: 1rem; background: white; border: 1px solid #d5dee8; border-radius: .4rem; }
+.project-card button { margin: .5rem .25rem .25rem 0; }

@@ -1,46 +1,41 @@
 # Frontend API contract
 
-Checked against the hosted API and backend source on November 16, 2026.
-This covers the existing sign-in, profile, project browsing, and catalog features.
-Profile selections are on the backend branch. Project management and its owner
-membership migration await review. Shared release and migrations are separate;
-new feature browser checks use the local API and a separate local database.
+This describes the API on the backend branch. The hosted API may be running an
+older version. Use `/docs` on the API you connect to for its request schemas.
 
-## Connection and identity
-
-| Setting | Value |
+| Address | URL |
 | --- | --- |
-| Hosted API | `https://project-hub-api-ruby.vercel.app` |
-| Interactive documentation | <https://project-hub-api-ruby.vercel.app/docs> |
-| Machine-readable contract | <https://project-hub-api-ruby.vercel.app/openapi.json> |
-| Hosted frontend origin | `https://project-hub-client-hazel.vercel.app` |
+| Hosted API | <https://project-hub-api-ruby.vercel.app> |
+| API documentation | <https://project-hub-api-ruby.vercel.app/docs> |
+| OpenAPI schema | <https://project-hub-api-ruby.vercel.app/openapi.json> |
+| Hosted frontend | <https://project-hub-client-hazel.vercel.app> |
 
-The frontend signs in with Supabase using the public URL and publishable key
-from the existing private handoff. It sends the current session's **access token**
-to FastAPI as `Authorization: Bearer <access_token>`. Send `Content-Type:
-application/json` for profile updates. The API does not use frontend cookies or
-accept a user ID as proof of identity. All feature routes below require a token;
-`GET /health`, `/docs`, and `/openapi.json` are public.
+## Send authenticated requests
 
-Use one frontend API helper and the Supabase client's session refresh support.
-On 401, allow at most one refresh and retry of a request. If refresh fails or the
-retry returns 401, return to the signed-out state. A 503 is an unavailable service;
-show a retry state without signing the user out or starting a refresh loop.
-Clear cached account data when switching accounts or signing out.
-Supabase documents the access-token and refresh-token lifecycle in
-[User sessions](https://supabase.com/docs/guides/auth/sessions).
+Sign in through Supabase, then send the session's access token with each request:
 
-API token checks validate signature, issuer, audience, expiry, and the signed
-subject. Account roles come from the application database. An unexpired token
-can remain valid after sign-out; the frontend must discard its session and data.
+```http
+Authorization: Bearer <access_token>
+Content-Type: application/json
+```
+
+`Content-Type` is needed when sending JSON. The API does not use frontend cookies.
+All routes below require a token. `/health`, `/docs`, and `/openapi.json` are public.
+
+If a request returns 401, refresh the session and retry once. If that fails,
+return to sign-in. For 503, show an error and let the user retry. Clear saved
+account data when signing out or switching accounts.
+
+IDs are UUID strings. Replace placeholders such as `<skill-id>` with real IDs
+from the API. Dates and times use ISO 8601 strings.
 
 ## Account and profile
 
-`GET /me` returns these fields, including nullable fields:
+`GET /me` returns the signed-in account:
 
 ```json
 {
-  "id": "<signed-in-user-uuid>",
+  "id": "<user-id>",
   "role": "student",
   "faculty_verified_at": null,
   "profile": null,
@@ -49,232 +44,253 @@ can remain valid after sign-out; the frontend must discard its session and data.
 }
 ```
 
-The example uses a placeholder UUID. `role` is `student`, `faculty`, or
-`administrator`. `faculty_verified_at` is an ISO 8601 timestamp or null. A faculty
-role alone does not establish verification. `profile: null` means the user has
-not created a profile; show the profile creation form. The updated backend adds
-`skills` and `interests` as arrays of `{id, name}`, sorted by name. Empty arrays
-mean no selections. Existing fields keep their names and meanings.
+`role` is `student`, `faculty`, or `administrator`. Verified faculty must have
+both the faculty role and a non-null `faculty_verified_at`.
+`profile: null` means the user has not created a profile.
+Skills and interests contain `{id, name}` objects, sorted by name.
 
-`PATCH /me/profile` creates or partially updates the current user's profile.
-On success it returns the profile object directly, rather than the `/me` wrapper.
-All fields in the response below are present. Omitted PATCH fields retain their
-saved values. Explicit null clears any optional field; it cannot clear
-`display_name`. Text input is trimmed before validation.
+`PATCH /me/profile` creates or edits the profile and returns the profile directly.
+For example:
 
-| Field | Response type | PATCH validation |
-| --- | --- | --- |
-| `user_id` | UUID string | Read-only; never send it |
-| `display_name` | string | Required for creation; 1–150 characters; cannot be null |
-| `university` | string or null | 1–200 characters when non-null |
-| `major` | string or null | 1–150 characters when non-null |
-| `department` | string or null | 1–150 characters when non-null |
-| `bio` | string or null | At most 5,000 characters; empty string allowed |
-| `availability_hours` | integer or null | 0–168; booleans and numeric strings rejected |
-| `learning_goals` | string or null | At most 2,000 characters; empty string allowed |
-| `experience_years` | integer or null | 0–100; booleans and numeric strings rejected |
+```json
+{"display_name":"Maya Chen","availability_hours":0}
+```
 
-For example, `{"display_name":"Maya Chen","availability_hours":0}` can create a
-profile. A subsequent `{"bio":null}` clears only the bio. An empty object is a
-no-op for an existing profile; it returns 422 when no profile exists because
-creation requires a name. Zero hours and zero years are valid saved values;
-preserve them in forms.
+| Field | Allowed value |
+| --- | --- |
+| `display_name` | 1–150 characters; required when creating a profile |
+| `university` | 1–200 characters or null |
+| `major`, `department` | 1–150 characters or null |
+| `bio` | Up to 5,000 characters or null; empty string allowed |
+| `learning_goals` | Up to 2,000 characters or null; empty string allowed |
+| `availability_hours` | Integer 0–168 or null |
+| `experience_years` | Integer 0–100 or null |
 
-Unknown fields are rejected with 422, including `role`, `faculty_verified_at`,
-`user_id`, `skills`, and `interests`. The input schema currently marks
-`display_name` as nullable even though runtime validation rejects explicit null;
-the rule above and the endpoint description specify its actual behavior.
+Text is trimmed before validation. Omit a field to keep its saved value. Send
+null to clear an optional field. `display_name` cannot be null, even if the
+OpenAPI input schema shows it as nullable. Zero is a valid numeric value.
+Numeric strings and booleans are rejected for integer fields.
 
-## Profile skills and interests
+An empty PATCH leaves an existing profile unchanged. Creating a profile without
+a name returns 422. The response also includes the read-only `user_id`.
+Unknown fields, including `role` and `faculty_verified_at`, return 422.
+Role changes use the [faculty operator command](faculty-operations.md).
 
-These endpoints are implemented locally and await release:
+### Save skills and interests
 
 | Method | Endpoint | Request | Response |
 | --- | --- | --- | --- |
-| PUT | `/me/skills` | `{"skill_ids":["<catalog-uuid>"]}` | `{"skills":[{"id":"<uuid>","name":"react"}]}` |
-| PUT | `/me/interests` | `{"interest_ids":["<catalog-uuid>"]}` | `{"interests":[{"id":"<uuid>","name":"robotics"}]}` |
+| PUT | `/me/skills` | `{"skill_ids":["<skill-id>"]}` | `{"skills":[{"id":"<skill-id>","name":"react"}]}` |
+| PUT | `/me/interests` | `{"interest_ids":["<interest-id>"]}` | `{"interests":[{"id":"<interest-id>","name":"robotics"}]}` |
 
-Each request replaces only that signed-in user's selected list. Send an empty
-array to clear it. Up to 50 unique catalog IDs are allowed; names, duplicate IDs,
-unknown IDs, malformed UUIDs, missing lists, null, and extra fields return 422.
-Unknown IDs use a string `detail`; schema errors use the usual array format.
+Each request replaces one list. An empty array clears it. Use up to 50 unique,
+known catalog IDs. Missing lists, null, duplicates, unknown IDs, and extra fields
+return 422. A failed save leaves the previous list intact. Saving skills does
+not change interests or profile fields. `GET /me` returns the saved selections.
 
-The full replacement commits in one transaction. Invalid or failed requests leave
-the previous selection intact. Repeating a request gives the same saved list.
-Concurrent saves for one user run in sequence. Profile fields, roles, and the
-other catalog's selection are preserved. `GET /me` returns the saved choices
-after reload. There is no route for editing another user's choices.
+## Browse projects and catalogs
 
-The frontend saves skills and interests separately and keeps unsaved choices
-after a failed request. Catalog creation and account roles remain unavailable
-through profile requests. Faculty changes use a
-[trusted operator command](faculty-operations.md).
+| Method | Endpoint | Result |
+| --- | --- | --- |
+| GET | `/projects` | Projects the caller can see |
+| GET | `/projects/{id}` | One project |
+| GET | `/skills` | Skill IDs and names |
+| GET | `/interests` | Interest IDs and names |
 
-## Project list and detail
+Open projects are visible to every signed-in user. Draft, in-progress, completed,
+and archived projects are visible only to their owner and current members.
+A hidden or missing project returns 404.
 
-`GET /projects` returns `{"items":[<project>],"next_cursor":<UUID or null>}`.
-`GET /projects/{project_id}` returns one project with the same fields as a list
-item. The detail URL does not use a different wrapper.
+Project lists contain the same project fields as the detail route:
 
-| Field | Response type / meaning |
+| Field | Meaning |
 | --- | --- |
-| `id` | Project UUID string |
-| `title`, `description` | Strings |
+| `id`, `title`, `description` | Project ID and text |
 | `project_type` | `student_project` or `research_opportunity` |
 | `status` | `draft`, `open`, `in_progress`, `completed`, or `archived` |
-| `weekly_hours` | Integer or null; null means unspecified |
-| `minimum_experience_years` | Integer or null; null means unspecified |
-| `max_members` | Integer or null; null means no configured cap |
-| `member_count` | Integer; number of saved membership rows |
-| `owner` | `{id, display_name, role, faculty_verified}` |
-| `skills` | Array of `{id, name, required}`; empty array when absent |
-| `interests` | Array of `{id, name}`; empty array when absent |
-| `created_at`, `updated_at` | ISO 8601 timestamps |
+| `weekly_hours`, `minimum_experience_years` | Integer or null when unspecified |
+| `max_members` | Integer or null when no limit is set |
+| `member_count` | Number of members, including the owner |
+| `owner` | Public user summary: `{id, display_name, role, faculty_verified}` |
+| `skills` | `{id, name, required}` objects, sorted by name |
+| `interests` | `{id, name}` objects, sorted by name |
+| `created_at`, `updated_at` | Timestamps |
 
-`owner.id` is a UUID; `owner.display_name` can be null when no profile exists.
-`owner.role` uses the same role values as `/me`. `owner.faculty_verified` is a
-boolean, rather than a timestamp. Owner summaries exclude email, bio, and private
-profile details. Linked skills/interests are sorted by name within a project.
+A public user summary excludes email and private profile fields.
+`display_name` can be null. Empty skill and interest lists are returned as `[]`.
+Existing projects need the owner-membership migration before hosted member
+counts include their owners.
 
-The owner counts as one member. Creating a project inserts the owner membership
-in the same transaction. The migration backfills missing owners; existing
-memberships stay intact. Hosted counts retain their old values until migration.
+### Project filters
 
-Every signed-in user can see open projects. Other statuses are visible only to
-their owner or an existing member. Without a status filter, the list includes
-**all visible statuses**, including the caller's own private projects. Pass
-`status=open` when a screen specifically needs open projects. A status filter
-does not bypass visibility. Hidden and nonexistent detail IDs both return 404.
+`GET /projects` accepts these optional filters:
 
-### Search and filters
-
-| Query parameter | Accepted value | Behavior |
-| --- | --- | --- |
-| `limit` | Integer 1–100; default 20 | Maximum items per page |
-| `cursor` | UUID string | Exclusive position after the previous page |
-| `q` | 1–200 characters | Case-insensitive literal substring of title or description |
-| `project_type` | Either project type above | Exact match |
-| `status` | Any project status above | Exact match within visible projects |
-| `skill_id` | Catalog skill UUID | Matches required or optional linked skills |
-| `interest_id` | Catalog interest UUID | Matches linked interests |
-
-All supplied filters combine with AND. Search trims surrounding whitespace;
-a whitespace-only search acts like no search. An empty string is invalid.
-`%` and `_` are literal search characters, not SQL wildcards. Unknown, valid
-catalog UUIDs return an empty page. Malformed UUIDs, unknown enum values, invalid
-limits, and oversized search strings return 422.
-
-### Pagination for projects and catalogs
-
-`GET /skills` and `GET /interests` support only `limit` and `cursor`. Both return
-`{"items":[{"id":"<uuid>","name":"<name>"}],"next_cursor":null}`.
-Catalog names are lowercase. A catalog selection must use its ID.
-
-All three lists sort by UUID ascending, rather than name, date, or relevance.
-Start without `cursor`, then pass the returned `next_cursor` unchanged. Keep the
-same filters when fetching another page. A cursor is a UUID position, so it does
-not need to identify an existing record and is not tied to a server-side session.
-Reset pagination when filters change. No total count is returned.
-
-`next_cursor: null` means pagination is finished, including when a final page
-contains exactly `limit` items. An empty result is always
-`{"items":[],"next_cursor":null}`. Do not send `cursor=null` or an empty cursor
-string; omit the parameter. Concurrent data changes can change subsequent pages;
-the cursor does not provide a snapshot of the database.
-
-## Manage projects
-
-| Method | Endpoint | Behavior |
-| --- | --- | --- |
-| POST | `/projects` | Create a private draft with the caller as owner and member; returns 201 |
-| PATCH | `/projects/{id}` | Owner edits fields and requirements; returns the project |
-| PATCH | `/projects/{id}/status` | Owner sends `{"status":"open"}` to change status |
-| GET | `/me/projects` | Only owned projects, including drafts and archived projects |
-
-Create requires `title` (1–200 characters) and `description` (1–10,000), trimmed.
-`project_type` defaults to `student_project`. Optional integer fields are
-`weekly_hours` (0–168), `minimum_experience_years` (0–100), and `max_members`
-(1–100, including the owner). Null means unspecified or unlimited capacity.
-Numeric strings, booleans, unknown fields, and client-supplied ownership/status
-are rejected. No administrator bypass exists.
-
-Send `skills: [{"skill_id":"<catalog-uuid>","required":true}]` and
-`interest_ids: ["<catalog-uuid>"]`. Required defaults to true and must be boolean.
-Each list accepts at most 50 unique, known IDs. Empty arrays clear selections.
-Create defaults to empty lists. Edits preserve omitted fields; explicit null can
-clear only numeric fields. All field and link changes share one transaction.
-Capacity cannot be reduced below the saved membership count (409).
-
-Only verified faculty may create, edit, or publish research opportunities.
-Verification requires both the faculty role and a saved verification timestamp.
-An owner who loses verification may convert research to a student project or
-archive it. Starting/completing an existing research project remains available.
-
-Status follows `draft → open → in_progress → completed`. Any non-archived status
-may become `archived`. Repeating the current status is a no-op. Other transitions
-and all content edits of archived projects return 409. Archiving is permanent in
-this release. Open projects become private to owners/members when started.
-A hidden or missing project returns 404; a visible project edited by a non-owner
-returns 403. Ownership never changes through these endpoints.
-
-My Projects accepts `limit`, `cursor`, and optional `status`, using the same page
-shape and UUID ordering as discovery. Membership in another user's project does
-not put it in this list.
-
-## Errors
-
-Read the HTTP status and FastAPI's `detail` property. Ordinary errors use a string;
-field validation uses an array. Both of these are real 422 formats:
-
-```json
-{"detail":"display_name is required to create a profile"}
-```
-
-```json
-{"detail":[{"loc":["body","display_name"],"msg":"...","type":"..."}]}
-```
-
-Validation entries can also include `input` and `ctx`; do not depend on exact
-Pydantic wording or display raw input values to other users.
-
-| HTTP status | Current meaning / response |
+| Parameter | Meaning |
 | --- | --- |
-| 401 | `Invalid or missing access token`, including expired tokens; `WWW-Authenticate: Bearer` is sent |
-| 401 | `Account no longer exists` when the verified identity was deleted; no refresh loop |
-| 404 | `Project not found` for hidden or nonexistent project UUIDs |
-| 422 | Invalid input; `detail` is an array, or the missing-profile-name string above |
-| 503 | `Authentication is not configured` or `Identity provider is unavailable` |
+| `q` | Search title and description; 1–200 characters, case-insensitive |
+| `project_type`, `status` | Match one of the values listed above |
+| `skill_id` | Match a required or optional skill |
+| `interest_id` | Match an interest |
 
-The current endpoints do not return 403/409. New endpoints will document their
-errors separately. Unexpected server failures may have a non-JSON body;
-the frontend helper should still present a failed-request state.
+Filters combine: a project must match all supplied filters and be visible to the
+caller. Without a status filter, the list includes all visible statuses.
+Search trims whitespace; whitespace alone means no search. `%` and `_` are
+ordinary characters. Unknown catalog IDs return an empty list; malformed IDs
+return 422.
+
+### Load another page
+
+List routes return `items` and `next_cursor`:
+
+```json
+{"items":[],"next_cursor":null}
+```
+
+Use `limit` to set the page size: 1–100, default 20. Start without `cursor`, then
+send the previous response's `next_cursor` to get another page. Null means there
+are no more pages. Omit the cursor rather than sending the text `null`.
+Keep filters the same between pages and reset the cursor when they change.
+
+Projects and catalog entries sort by UUID, not by name or date. Catalog entries
+contain only `id` and `name`. Lists can change between requests as records change.
+
+## Create and manage projects
+
+| Method | Endpoint | Action |
+| --- | --- | --- |
+| POST | `/projects` | Create a draft; returns 201 |
+| PATCH | `/projects/{id}` | Edit project fields and requirements |
+| PATCH | `/projects/{id}/status` | Change status, for example `{"status":"open"}` |
+| GET | `/me/projects` | List projects owned by the caller |
+
+Only the owner can edit a project or change its status. The API takes ownership
+from the access token. Requests cannot set an owner, project ID, or status through
+project creation or editing. Successful writes return the project.
+
+| Field | Allowed value |
+| --- | --- |
+| `title` | 1–200 trimmed characters; required for creation |
+| `description` | 1–10,000 trimmed characters; required for creation |
+| `project_type` | Defaults to `student_project` |
+| `weekly_hours` | Integer 0–168 or null |
+| `minimum_experience_years` | Integer 0–100 or null |
+| `max_members` | Integer 1–100 or null for no limit; includes the owner |
+| `skills` | Up to 50 unique entries: `{"skill_id":"<skill-id>","required":true}` |
+| `interest_ids` | Up to 50 unique, known interest IDs |
+
+`required` defaults to true and must be a boolean. Skill IDs must exist in the
+catalog. New projects default to empty skill and interest lists. On edits, omit
+a field to keep it, send an empty array to clear a list, or send null to clear a
+numeric field. Other fields cannot be null. All changes save together or fail
+together. Capacity cannot be reduced below the current member count.
+
+The owner joins the team when the project is created. Creating, editing, or
+publishing research opportunities requires verified faculty. An owner who loses
+verification can still convert the project to a student project or archive it.
+
+Statuses follow `draft → open → in_progress → completed`. Any non-archived status
+can become `archived`. Sending the current status again changes nothing. Other
+transitions return 409. Archiving cannot be undone through the API, and archived
+project details cannot be edited. Starting an open project makes it private to
+the owner and members.
+
+`GET /me/projects` supports `limit`, `cursor`, and `status`. It includes owned
+drafts and archived projects. Being a member of someone else's project does not
+put it in this list.
+
+## Applications and teams
+
+| Method | Endpoint | Action |
+| --- | --- | --- |
+| POST | `/projects/{id}/applications` | Apply with `{"message":"..."}`; message is optional |
+| GET | `/me/applications` | View the caller's application history |
+| PATCH | `/applications/{id}/withdraw` | Withdraw a pending application |
+| GET | `/projects/{id}/applications` | Owner reviews applications |
+| PATCH | `/applications/{id}/decision` | Owner sends `{"status":"accepted"}` or `{"status":"rejected"}` |
+| GET | `/projects/{id}/members` | Owner and members view the team |
+| DELETE | `/projects/{id}/members/{user_id}` | Owner removes a member, or a member leaves |
+
+### Apply and review
+
+Application messages allow up to 2,000 trimmed characters. The message can be
+omitted or null. The API takes the applicant from the access token. A new
+application returns 201. Only the applicant and project owner can see its message.
+
+The project must be open and have space to apply or accept someone. The owner
+counts toward capacity. Owners and existing members cannot apply.
+Each person has one application per project.
+
+| Application status | What can happen next |
+| --- | --- |
+| `pending` | The owner can accept/reject it; the applicant can withdraw it |
+| `withdrawn` | The applicant can resubmit if the project is open and has space |
+| `accepted` | The decision stays in history after leaving or removal; rejoining is unavailable |
+| `rejected` | Resubmission is unavailable |
+
+Resubmission returns 200, reuses the application ID and creation date, and replaces
+the message. Repeating the same withdrawal or decision changes nothing. Changing
+a final decision returns 409. Acceptance saves the decision and membership
+together; a full-team error leaves the application pending.
+
+Application responses contain `id`, `project`, `applicant`, `message`, `status`,
+`created_at`, and `updated_at`. `project` contains `id`, `title`, `status`, and
+`owner_id`. `applicant` is a public user summary.
+
+Both application lists support `limit`, `cursor`, and `status`, ordered by
+application UUID. My Applications also accepts `project_id`. Owner review adds a
+`project` summary to the page response. Application history does not grant access
+to private project details or the team roster.
+
+### View or leave a team
+
+The roster returns `project`, `max_members`, `member_count`, `items`, and
+`next_cursor`. Each item contains `user` (a public user summary), `joined_at`, and
+`is_owner`. Use `limit` and `cursor` to load more members. Members sort by user
+UUID, which is also the roster cursor.
+
+Only the owner can remove another member. The owner cannot leave or be removed.
+Removal returns `{"project_id":"...","user_id":"...","removed":true}`. If the
+owner repeats removal, it returns `removed:false`. Leaving ends member access;
+a former member can receive 404 when opening a private project or roster.
+Repeating an old acceptance does not add that person back to the team.
+
+Archived projects allow history and roster reads, and applicants can still
+withdraw pending applications. New decisions and membership changes are blocked.
+
+## Handle errors
+
+Read the response's `detail` field. It is usually a message:
+
+```json
+{"detail":"The project team is full"}
+```
+
+Field validation returns a list instead:
+
+```json
+{"detail":[{"loc":["body","title"],"msg":"...","type":"..."}]}
+```
+
+| Status | Meaning |
+| --- | --- |
+| 401 | Missing, invalid, or expired token; or the Auth account no longer exists |
+| 403 | The account cannot perform this action |
+| 404 | The record is missing or hidden from this account |
+| 409 | The action conflicts with the current status, membership, or capacity |
+| 422 | Invalid fields, unknown catalog IDs, or invalid query parameters |
+| 503 | Authentication is not configured or the identity provider is unavailable |
+
+Some server errors may not return JSON. Show a useful error message in that case.
+Administrator accounts do not bypass project, application, or team permissions.
 
 ## CORS
 
-The hosted API now permits the frontend origin. Its CORS setting was updated
-for Production and Preview, and the existing production API was redeployed.
-The hosted frontend's PATCH preflight returned 200 with the correct allowed
-origin. The configured value is:
+The backend allows GET, POST, PATCH, PUT, and DELETE from configured origins.
+Authorization and Content-Type headers are allowed; cookies are not needed.
+Use exact origins without a trailing slash:
 
 ```dotenv
 CORS_ORIGINS='["http://localhost:5173","http://localhost:3000","https://project-hub-client-hazel.vercel.app"]'
 ```
 
-Use exact origins without a trailing slash. The hosted API currently permits
-GET/PATCH; the updated backend adds PUT for selections. Deploy that backend
-before publishing the updated selectors. Authorization/Content-Type are allowed;
-no cookie credentials are needed. Preview origins
-must be added individually when needed.
-
-## Browser checks
-
-These checks passed using the local frontend against the hosted API with two
-demo accounts. Repeat them on the hosted frontend after release:
-
-1. Sign in, read the account, create/update a profile, and reload saved values.
-2. Browse list/detail, use catalog filters, and load subsequent pages.
-3. View a private draft as its owner; verify it stays hidden from the other user.
-4. Exercise loading, empty, signed-out, and failed-request states; block repeat
-   form submission while a request is running.
-5. Exercise expiry with bounded refresh/retry, failed refresh, sign-out, and
-   switching accounts without showing the previous user's cached profile.
+Add preview origins individually when they are needed.
