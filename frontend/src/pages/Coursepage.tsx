@@ -91,62 +91,7 @@ export function ProjectHub() {
                 </div>
             </header>
 
-            {/* <div className="grid-container">
-                <div className="projecthub">
-                    <h2 className="pageTitle">
-                        <h1>
-                            Project Hub
-                        </h1>                        
-
-                        <div className="createButton">
-                            <button onClick={() => navigate('/createproject')}>
-                                Create Project
-                            </button>
-                        </div>
-                        
-                        <div className="currProjectsButton">
-                            <button onClick={() => console.log("Right function")}>
-                                Current Projects
-                            </button>
-                        </div>
-
-                    </h2>
-
-                    <form onSubmit={async(event) => {
-                        event.preventDefault();
-                        const formData = new FormData(event.currentTarget);
-                        const searchInput = formData.get('searchbox');
-                        console.log(searchInput);
-                    }}>
-
-                    <div className="search-container">
-                        <input type="text" placeholder="Search Projects" name="searchbox"/>
-                    </div>
-
-                    </form>
-
-                    <div className="center">
-                    <Projects/>
-                    </div>
-
-                    <>
-                        {message && <p role="status">{message}</p>}
-                        {error && <p role="alert">{error}</p>}
-                    </>
-                </div>
-
-                <div className="left">
-                    Left
-                </div>
-                <div className="center">
-                    Center
-                </div>
-                <div className="right">
-                    Right
-                </div>
-            </div> */}
-
-            <div className="grid-container">
+            <div className="main-grid-container">
                 <div className="left">
                     <div className="createButton">
                         <button onClick={() => navigate("/createproject")}>
@@ -154,6 +99,8 @@ export function ProjectHub() {
                         </button>
                     </div>
                 </div>
+
+
                 <div className="center">
                     <h2>
                         {message && <p role="status">{message}</p>}
@@ -161,19 +108,26 @@ export function ProjectHub() {
                     </h2>
                     <div>
                         <h1>
-                            Project Hubs
+                            Central Project Manager
                         </h1>
                         <form>
-                            <input type="text" placeholder="Search Projects"></input>
+                            {/* <input type="text" placeholder="Search Projects"></input> */}
+                            <div className="search-input-container">
+                                <input className="search-input" id="project-search" name="text" type="text" placeholder="Find Projects"/>
+                                <div className="search-topline"></div>
+                                <div className="search-underline"></div>
+                            </div>
                         </form>
                     </div>
                     <div>
                         <Projects/>
                     </div>
                 </div>
+
+                
                 <div className="right">
-                    <div>
-                        <button className="currProjectsButton" onClick={() => console.log("CURRENT PROJECTS!")}>
+                    <div className="currProjectsButton">
+                        <button onClick={() => console.log("CURRENT PROJECTS!")}>
                             Current Projects
                         </button>
                     </div>

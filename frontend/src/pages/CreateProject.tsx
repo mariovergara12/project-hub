@@ -30,31 +30,6 @@ export function UserProject() {
 
     return (
         <>
-            {/* <h1 className="basic-container">
-                Create your project
-            </h1>
-
-            <form className="form-group">
-                <div className="basic-container">
-                    <input type="text" placeholder="Enter Project Title"></input>
-                </div>
-                <div className="basic-container">
-                    <input type="text" placeholder="Enter Project Fields"></input>
-                </div>
-                <div className="basic-container">
-                    <input type="text" placeholder="Enter Project Description"></input>
-                </div>
-                <div className="basic-container">
-                    <button onClick={() => console.log("FUNCTION!")}>
-                        Submit
-                    </button>
-                </div>
-                <div className="basic-container"> 
-                    <button onClick={() => navigate("/main")}>
-                        Back to Main
-                    </button>
-                </div>
-            </form> */}
             <header>
                 <div className="container">
                     <div id="userProfile"> {session?.user.email} </div>
@@ -68,6 +43,56 @@ export function UserProject() {
                     </nav>
                 </div>
             </header>
+
+            <div className="create-project-grid">
+            <div></div>
+            <div className="create-project-center">
+                <div className="create-project-row-1">
+                    <h1>
+                        Create a Project
+                    </h1>
+                </div>
+                <div className="create-project-row-2">
+                    <div className="create-project-box">
+                        <h2> Title </h2>
+                        <div className="create-project-input">
+                            <input></input>
+                        </div>
+                        <h2> Description </h2>
+                        <div className="create-project-input"> 
+                            <input></input>
+                        </div>
+                        <h2> Project Type </h2>
+                        <div className="create-project-input">
+                            <input></input>
+                        </div>
+                        <h2> Weekly Hours </h2>
+                        <div className="create-project-input">
+                            <input></input>
+                        </div>
+                        <h2> Minimum Experience Years </h2>
+                        <div className="create-project-input">
+                            <input></input>
+                        </div>
+                        <h2> Max Members </h2>
+                        <div className="create-project-input">
+                            <input></input>
+                        </div>
+                        <h2> Skills </h2>
+                        <div className="create-project-input">
+                            <input></input>
+                        </div>
+                        <div className="create-btn">
+                            <button className="create-project-btn">
+                                Submit
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div></div>
+            </div>
 
             <>
                 {message && <p role="status">{message}</p>}

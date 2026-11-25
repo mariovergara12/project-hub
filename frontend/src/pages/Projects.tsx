@@ -1,34 +1,38 @@
-import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
-import { supabase } from '../lib/supabase';
-import { useAuth } from '../auth-context';
-
+// import { useNavigate } from 'react-router-dom';
+// import { useState } from 'react';
+// import { supabase } from '../lib/supabase';
+// import { useAuth } from '../auth-context';
+import { NavBar } from "../Components"
 
 
 
 export function Projects() {
-    const { session } = useAuth();
-    const [message, setMessage] = useState('');
-    const [error, setError] = useState('');
-    const navigate = useNavigate();
+    // const { session } = useAuth();
+    // const [message, setMessage] = useState('');
+    // const [error, setError] = useState('');
+    // const navigate = useNavigate();
     
 
-    async function signOut() {
-        // setPending(true);
-        setMessage('');
-        setError('');
-        try {
-            const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' });
-            if (signOutError) throw signOutError;
-        } catch {
-            setError('Could not log out. Please try again.');
-        } finally {
-            // setPending(false);
-        }
-    } 
+    // async function signOut() {
+    //     // setPending(true);
+    //     setMessage('');
+    //     setError('');
+    //     try {
+    //         const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' });
+    //         if (signOutError) throw signOutError;
+    //     } catch {
+    //         setError('Could not log out. Please try again.');
+    //     } finally {
+    //         // setPending(false);
+    //     }
+    // } 
     return (
         <>
-            <header>
+            <NavBar/>
+            <h1>
+                These are my projects
+            </h1>
+            {/* <header>
                 <div className="container">
                     <div id="userProfile"> {session?.user.email} </div>
                     <nav>
@@ -44,7 +48,7 @@ export function Projects() {
             <>
                 {message && <p role="status">{message}</p>}
                 {error && <p role="alert">{error}</p>} 
-            </>
+            </> */}
         </>
     )
 }
