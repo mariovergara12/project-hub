@@ -12,6 +12,7 @@ const Profile = lazy(() => import('./Profile').then(module => ({ default: module
 const ProjectDetail = lazy(() => import('./ProjectDetail').then(module => ({ default: module.ProjectDetail })));
 const ProjectEditor = lazy(() => import('./ProjectEditor').then(module => ({ default: module.ProjectEditor })));
 const MyProjects = lazy(() => import('./MyProjects').then(module => ({ default: module.MyProjects })));
+const ProjectMilestones = lazy(() => import('./Milestones').then(module => ({ default: module.ProjectMilestones })));
 const MyTeams = lazy(() => import('./MyTeams').then(module => ({ default: module.MyTeams })));
 const ForgotPassword = lazy(() => import('./AccountRecovery').then(module => ({ default: module.ForgotPassword })));
 const ResetPassword = lazy(() => import('./AccountRecovery').then(module => ({ default: module.ResetPassword })));
@@ -40,6 +41,7 @@ function App() {
                             <Route path='/my-applications' element={<MyApplications/>}/>
                             <Route path='/my-teams' element={<MyTeams/>}/>
                             <Route path='/projects/:projectId/applications' element={<ProjectApplicants/>}/>
+                            <Route path='/projects/:projectId/milestones' element={<ProjectMilestones/>}/>
                             <Route path='/projects/:projectId/team' element={<ProjectTeam/>}/>
                             <Route path='/my-projects' element={<MyProjects/>}/>
                             <Route path='/projects/new' element={<ProjectEditor/>}/>

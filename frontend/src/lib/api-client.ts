@@ -92,6 +92,7 @@ export function createApiClient({ baseUrl, auth, fetcher = fetch }: {
             }
         }
         if (!response.ok) throw new ApiError(response.status, await errorMessage(response));
+        if (response.status === 204) return undefined as T;
         return response.json() as Promise<T>;
     }
     return {

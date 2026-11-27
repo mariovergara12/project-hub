@@ -30,3 +30,12 @@ export type ProjectApplications = Page<ApplicationRecord> & { project: ProjectSu
 export type Member = { user: Project['owner']; joined_at: string; is_owner: boolean };
 export type Team = Page<Member> & { project: ProjectSummary; member_count: number; max_members: number | null };
 export type MyTeam = { project: Project; joined_at: string | null; is_owner: boolean };
+export type MilestoneStatus = 'todo' | 'in_progress' | 'completed';
+export type Milestone = {
+    id: string; project_id: string; title: string; description: string | null;
+    due_date: string | null; status: MilestoneStatus; created_at: string; updated_at: string;
+};
+export type MilestonePage = Page<Milestone> & {
+    project: ProjectSummary;
+    progress: { total: number; todo: number; in_progress: number; completed: number };
+};

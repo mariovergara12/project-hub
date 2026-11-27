@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
 from app.modules.collaboration.router import router as collaboration_router
+from app.modules.milestones.router import router as milestones_router
 from app.modules.projects.router import router as projects_router
 from app.modules.users.router import router as users_router
 
@@ -21,6 +22,7 @@ def create_app() -> FastAPI:
     application.include_router(users_router)
     application.include_router(projects_router)
     application.include_router(collaboration_router)
+    application.include_router(milestones_router)
 
     @application.get("/health", tags=["health"])
     def health() -> dict[str, str]:

@@ -35,7 +35,7 @@ export function PageHeading({ title, description, eyebrow, actions }: { title: s
     return <header className="page-heading"><div>{eyebrow && <p className="eyebrow">{eyebrow}</p>}<h1>{title}</h1>{description && <p className="page-description">{description}</p>}</div>{actions && <div className="heading-actions">{actions}</div>}</header>;
 }
 
-const labels: Record<string, string> = { in_progress: 'In progress', research_opportunity: 'Faculty research', student_project: 'Student project' };
+const labels: Record<string, string> = { todo: 'To do', in_progress: 'In progress', research_opportunity: 'Faculty research', student_project: 'Student project' };
 export function StatusBadge({ status }: { status: string }) {
     return <span className={`status-badge status-${status}`}><span aria-hidden="true" />{labels[status] || status}</span>;
 }

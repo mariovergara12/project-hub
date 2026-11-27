@@ -1,1 +1,1 @@
-"""Future team progress tracking services."""
+"""Team milestone management."""

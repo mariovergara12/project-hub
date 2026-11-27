@@ -162,3 +162,11 @@ describe('authenticated API requests', () => {
         expect(fetcher).not.toHaveBeenCalled();
     });
 });
+
+it('accepts an authenticated 204 deletion without parsing an empty JSON body', async () => {
+    const { api, fetcher } = setup();
+    fetcher.mockResolvedValue(new Response(null, { status: 204 }));
+    await expect(api.delete('/milestones/milestone-a')).resolves.toBeUndefined();
+    expect(fetcher.mock.calls[0][1]?.method).toBe('DELETE');
+    expect(new Headers(fetcher.mock.calls[0][1]?.headers).get('Authorization')).toBe('Bearer old-token');
+});

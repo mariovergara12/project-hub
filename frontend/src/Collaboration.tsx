@@ -160,7 +160,7 @@ function TeamList({ projectId }: { projectId: string }) {
         });
     }
     return <main className="app-page">
-        <PageHeader title="Project team"><Link to={`/projects/${projectId}`}>Project details</Link></PageHeader>
+        <PageHeader title="Project team"><><Link to={`/projects/${projectId}`}>Project details</Link><Link to={`/projects/${projectId}/milestones`}>Milestones</Link></></PageHeader>
         {roster.loading && <PageLoading>Loading team…</PageLoading>}
         {roster.error && <p role="alert">{roster.error instanceof ApiError && [403,404].includes(roster.error.status) ? 'The team is unavailable or restricted to the owner and current members.' : roster.error.message} <button onClick={roster.reload}>Retry team</button></p>}
         {me.error && <p role="alert">{me.error.message} <button onClick={me.reload}>Retry account</button></p>}

@@ -45,7 +45,7 @@ function ProjectDetailPage({ projectId }: { projectId: string }) {
         {project.error && <div role="alert">{project.error instanceof ApiError && project.error.status === 404 ? 'Project not found or unavailable to your account.' : project.error.message}<button onClick={project.reload}>Retry project</button></div>}
         {archiveOpen && <ConfirmDialog title="Archive this project?" description="Archiving closes applications and makes the project and its team read-only. You cannot undo this here." confirmLabel="Confirm archive" pending={pending} error={error} cancel={() => setArchiveOpen(false)} confirm={() => void changeStatus('archived')} />}
         {value && <article className="project-detail">
-            <nav className="subnav" aria-label="Project navigation"><StatusBadge status={value.status} />{owner && <><Link to={`/projects/${value.id}/team`}>View team</Link><Link to={`/projects/${value.id}/applications`}>Review applications</Link></>}</nav>
+            <nav className="subnav" aria-label="Project navigation"><StatusBadge status={value.status} />{owner && <><Link to={`/projects/${value.id}/team`}>View team</Link><Link to={`/projects/${value.id}/milestones`}>Milestones</Link><Link to={`/projects/${value.id}/applications`}>Review applications</Link></>}</nav>
             {owner && <section className="management-panel" aria-label="Manage project">
                 {value.status === 'draft' && <p>This is your private draft preview. Publish it to make it discoverable.</p>}
                 {value.status === 'archived' ? <p>Archived projects are read-only.</p> : <>
