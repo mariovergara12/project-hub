@@ -4,7 +4,7 @@ import type { Session } from '@supabase/supabase-js';
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { AuthContext } from '../src/auth-context';
-import { useResource } from '../src/use-resource';
+import { refreshResources, useResource } from '../src/use-resource';
 
 const mocks = vi.hoisted(() => ({ get: vi.fn() }));
 vi.mock('../src/api', () => ({ api: { get: mocks.get } }));
@@ -15,7 +15,7 @@ it('cancels previous account requests and never renders their late data', async 
     mocks.get.mockImplementation(() => new Promise(resolve => completions.push(resolve)));
     function Wrapper({ children }: { children: ReactNode }) {
         const session = { user: { id: account } } as Session;
-        return <AuthContext value={{ session, loading: false }}>{children}</AuthContext>;
+        return <AuthContext value={{ session, loading: false, recovery: false, finishRecovery: () => {} }}>{children}</AuthContext>;
     }
     const { result, rerender } = renderHook(() => useResource<{ owner: string }>('/me'), { wrapper: Wrapper });
     await waitFor(() => expect(mocks.get).toHaveBeenCalledTimes(1));
@@ -42,4 +42,15 @@ it('hides old filter results immediately and ignores late responses', async () =
     expect(result.current.loading).toBe(true);
     await act(async () => completions[1](['new project']));
     expect(result.current.data).toEqual(['new project']);
+});
+
+it('refreshes all active filtered lists for changed resources only', async () => {
+    mocks.get.mockResolvedValue([]);
+    const teams = renderHook(() => useResource('/me/teams?status=open'));
+    renderHook(() => useResource('/projects?limit=4'));
+    await waitFor(() => expect(mocks.get).toHaveBeenCalledTimes(2));
+    act(() => refreshResources(['/me/teams']));
+    await waitFor(() => expect(mocks.get).toHaveBeenCalledTimes(3));
+    expect(mocks.get.mock.calls[2][0]).toBe('/me/teams?status=open');
+    await waitFor(() => expect(teams.result.current.loading).toBe(false));
 });

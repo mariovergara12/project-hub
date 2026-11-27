@@ -26,6 +26,7 @@ function SidebarContent({ compact, toggleCompact, openSearch, navigate }: { comp
             <NavLink to="/main" aria-label="Discover projects" title="Discover projects" onClick={navigate}><Icon name="home" /><span>Discover projects</span></NavLink>
             <NavLink to="/my-projects" aria-label="My projects" title="My projects" onClick={navigate}><Icon name="folder" /><span>My projects</span></NavLink>
             <NavLink to="/my-applications" aria-label="Applications" title="Applications" onClick={navigate}><Icon name="send" /><span>Applications</span></NavLink>
+            <NavLink to="/my-teams" aria-label="My teams" title="My teams" onClick={navigate}><Icon name="team" /><span>My teams</span></NavLink>
             <p className="sidebar-section-label">Build</p>
             <NavLink to="/projects/new" aria-label="Create a project" title="Create a project" onClick={navigate}><Icon name="plus" /><span>Create a project</span></NavLink>
             <NavLink to="/profile" aria-label="Your profile" title="Your profile" onClick={navigate}><Icon name="user" /><span>Your profile</span></NavLink>
@@ -63,7 +64,7 @@ export function AppShell() {
         navigate(`/main${params.size ? `?${params}` : ''}`);
     }
     function openSearch() { setMobileOpen(false); setSearchOpen(true); }
-    const context = pathname === '/main' ? 'Discover projects' : pathname === '/profile' ? 'Your profile' : pathname === '/my-projects' ? 'My projects' : pathname === '/my-applications' ? 'Applications' : pathname === '/projects/new' ? 'Create a project' : 'Project workspace';
+    const context = pathname === '/main' ? 'Discover projects' : pathname === '/profile' ? 'Your profile' : pathname === '/my-projects' ? 'My projects' : pathname === '/my-teams' ? 'My teams' : pathname === '/my-applications' ? 'Applications' : pathname === '/projects/new' ? 'Create a project' : 'Project workspace';
     return <div className={`app-shell ${compact ? 'sidebar-is-compact' : ''}`}>
         <a href="#page-content" className="skip-link">Skip to content</a>
         <header className="dashboard-topbar"><div className="dashboard-brand"><Brand /></div><button className="mobile-nav-toggle" aria-label="Open navigation" aria-haspopup="dialog" aria-expanded={mobileOpen} onClick={() => setMobileOpen(true)}><Icon name="menu" /></button><div className="dashboard-breadcrumb"><span>Workspace</span><span aria-hidden="true">/</span><strong>{context}</strong></div><div className="topbar-actions"><Link className="button button-primary" to="/projects/new" aria-label="Create project"><Icon name="plus" /><span>Create project</span></Link><Link className="profile-shortcut" to="/profile" aria-label="Your profile"><Icon name="user" /></Link></div></header>

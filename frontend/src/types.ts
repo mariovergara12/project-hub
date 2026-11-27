@@ -29,3 +29,4 @@ export type ApplicationRecord = {
 export type ProjectApplications = Page<ApplicationRecord> & { project: ProjectSummary };
 export type Member = { user: Project['owner']; joined_at: string; is_owner: boolean };
 export type Team = Page<Member> & { project: ProjectSummary; member_count: number; max_members: number | null };
+export type MyTeam = { project: Project; joined_at: string | null; is_owner: boolean };

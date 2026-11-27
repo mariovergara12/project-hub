@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from './auth-context';
 import { supabase } from './lib/supabase';
 import { Brand, CollaborationArt, PageLoading } from './ui';
 
 export function Login() {
-    const { session, loading } = useAuth();
+    const { session, loading, recovery } = useAuth();
     const [pending, setPending] = useState(false);
     const [error, setError] = useState('');
     const [message, setMessage] = useState('');
@@ -24,7 +24,8 @@ export function Login() {
         setMessage('');
         try {
             if (action?.value === 'signup') {
-                const { data, error: signUpError } = await supabase.auth.signUp({ email, password });
+                if (password.length < 8) throw new Error('Use at least 8 characters for a new password.');
+                const { data, error: signUpError } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: `${window.location.origin}/auth/callback` } });
                 if (signUpError) throw signUpError;
                 if (!data.session) {
                     setMessage('Check your email to confirm your account, then return here to log in.');
@@ -42,7 +43,7 @@ export function Login() {
     }
 
     if (loading) return <main className="app-page"><PageLoading>Loading your session…</PageLoading></main>;
-    if (session) return <Navigate to="/main" replace />;
+    if (session) return <Navigate to={recovery ? '/reset-password' : '/welcome'} replace />;
 
     return (
         <div className="login-page">
@@ -72,6 +73,7 @@ export function Login() {
                             <button type="submit" className="signup-button" value="signup" disabled={pending}>Sign Up</button>
                         </div>
                     </form>
+                    <p><Link to="/forgot-password">Forgot your password?</Link></p>
                     <p className="auth-caption">Your profile, projects, and applications stay connected to your account.</p>
                 </div>
             </main>

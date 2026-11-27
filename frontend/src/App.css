@@ -237,3 +237,20 @@ legend { padding: 0 8px; font-size: 13px; font-weight: 500; }
 @media (max-width: 520px) { .project-cards {grid-template-columns:1fr;}.profile-fields {grid-template-columns:1fr;}.project-selections {grid-template-columns:1fr;}.list-toolbar {align-items:flex-start;flex-direction:column;}.list-toolbar label {max-width:none;width:100%;}.team-list li {flex-wrap:wrap;}.team-list button {margin-left:58px;}.team-list li>div {flex:1;min-width:0;}.dashboard-welcome h1 {font-size:28px;}.app-page {padding-left:16px;padding-right:16px;}.dashboard-brand .brand {font-size:17px;gap:8px;}.dashboard-brand {padding-left:14px;padding-right:6px;}.topbar-actions .button>span {display:none;}.topbar-actions .button {width:33px;padding:8px;}.project-search-form {gap:8px;}.search-rotator {font-size:12px;}.search-rotator>.rotating-project {min-width:0;}.site-footer>span {max-width:55%;}.type-tabs button {font-size:10px;padding:8px;} }
 @media (pointer: coarse) { button,.button,.sidebar-nav a,.subnav a {min-height:44px;}input,select,textarea,.project-search-input input {font-size:16px;}.selection-option {min-height:44px;} }
 @media (prefers-reduced-motion: reduce) { .loading-indicator,.rotating-project {animation:none;} }
+
+/* Account setup and collaboration confirmations. */
+.account-page { min-height: 100dvh; display: flex; flex-direction: column; align-items: center; gap: 2rem; padding: 2.5rem 1.25rem; background: #fafafa; }
+.account-page .login-card { width: min(100%, 480px); margin: auto 0; }
+.account-page h1 { font-size: 1.8rem; line-height: 1.2; }
+.account-page .profile-fields { display: flex; flex-direction: column; }
+.confirmation-dialog { width: min(480px, calc(100vw - 2rem)); padding: 1.75rem; border: 1px solid var(--line); border-radius: 12px; color: var(--ink); background: white; box-shadow: 0 20px 80px #0002; }
+.confirmation-dialog::backdrop { background: #18181855; }
+.confirmation-dialog h2 { margin-top: 0; font-size: 1.4rem; }
+.confirmation-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .75rem; margin-top: 1.5rem; }
+.team-project { display: flex; flex-direction: column; min-width: 0; }
+.team-project .project-card { flex: 1; }
+.team-role { font-size: .8rem; color: var(--muted); margin: 0 0 .5rem; }
+.onboarding-panel { padding: 1.5rem; border: 1px solid #f1d8c8; border-radius: 10px; background: #fffaf6; margin-bottom: 1.5rem; }
+.onboarding-panel h2 { margin-top: 0; }
+.onboarding-steps { display: flex; flex-wrap: wrap; gap: .75rem 2rem; padding-left: 1.25rem; color: var(--muted); }
+.onboarding-panel .subnav { margin-top: 1.2rem; }

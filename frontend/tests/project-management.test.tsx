@@ -10,7 +10,7 @@ import type { Me, Project } from '../src/types';
 
 const mocks = vi.hoisted(() => ({ post: vi.fn(), patch: vi.fn(), resource: vi.fn(), reload: vi.fn() }));
 vi.mock('../src/api', () => ({ api: { post: mocks.post, patch: mocks.patch }, loadCatalog: vi.fn() }));
-vi.mock('../src/use-resource', () => ({ useResource: mocks.resource }));
+vi.mock('../src/use-resource', () => ({ useResource: mocks.resource, refreshResources: vi.fn() }));
 vi.mock('../src/Collaboration', () => ({ ProjectParticipation: () => null }));
 vi.mock('../src/AccountAccess', () => ({ AccountAccess: () => null }));
 const me: Me = { id: 'owner', role: 'student', faculty_verified_at: null, profile: null, skills: [], interests: [] };
@@ -23,6 +23,8 @@ const project: Project = {
 };
 beforeEach(() => {
     vi.resetAllMocks();
+    HTMLDialogElement.prototype.showModal = vi.fn(function (this: HTMLDialogElement) { this.open = true; });
+    HTMLDialogElement.prototype.close = vi.fn(function (this: HTMLDialogElement) { this.open = false; });
     mocks.resource.mockImplementation(path => ({ data: path === '/me' ? me : path === '/skills'
         ? { items: [{ id: 'python', name: 'python' }] } : path === '/interests'
         ? { items: [{ id: 'robotics', name: 'robotics' }] } : path.startsWith('/me/projects')
@@ -128,4 +130,19 @@ it('does not navigate away from the next page when a cancelled save finishes lat
     finish(project);
     await waitFor(() => expect(screen.getByText('Cancelled editing')).toBeTruthy());
     expect(screen.queryByText('Saved project preview')).toBeNull();
+});
+
+it('requires archive confirmation, supports cancellation, and keeps a failed archive open', async () => {
+    mocks.patch.mockRejectedValue(new Error('Status could not be saved'));
+    render(<MemoryRouter initialEntries={['/projects/project-a']}><Routes><Route path="/projects/:projectId" element={<ProjectDetail />} /></Routes></MemoryRouter>);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Archive project' }));
+    expect(mocks.patch).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Archive project' }));
+    await user.click(screen.getByRole('button', { name: 'Confirm archive' }));
+    expect(mocks.patch).toHaveBeenCalledWith('/projects/project-a/status', { status: 'archived' }, expect.any(AbortSignal));
+    expect(screen.getByRole('dialog').textContent).toContain('Status could not be saved');
+    expect(mocks.reload).not.toHaveBeenCalled();
 });

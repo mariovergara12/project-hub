@@ -9,7 +9,7 @@ import type { ApplicationRecord, Me, Project, Team } from '../src/types';
 
 const mocks = vi.hoisted(() => ({ resource: vi.fn(), post: vi.fn(), patch: vi.fn(), remove: vi.fn(), reload: vi.fn() }));
 vi.mock('../src/api', () => ({ api: { post: mocks.post, patch: mocks.patch, delete: mocks.remove } }));
-vi.mock('../src/use-resource', () => ({ useResource: mocks.resource }));
+vi.mock('../src/use-resource', () => ({ useResource: mocks.resource, refreshResources: vi.fn() }));
 vi.mock('../src/AccountAccess', () => ({ AccountAccess: () => null }));
 const owner: Project['owner'] = { id: 'owner', display_name: 'Maya', role: 'student', faculty_verified: false };
 const applicant: Project['owner'] = { ...owner, id: 'applicant', display_name: 'Noah' };
@@ -36,10 +36,11 @@ function view(path: string, value = project) {
         <Route path="/projects/:projectId" element={<ProjectParticipation project={value} />} />
         <Route path="/projects/:projectId/applications" element={<ProjectApplicants />} />
         <Route path="/projects/:projectId/team" element={<ProjectTeam />} />
+        <Route path="/my-teams" element={<h1>My teams</h1>} />
         <Route path="/my-applications" element={<MyApplications />} />
     </Routes></MemoryRouter>);
 }
-beforeEach(() => { vi.resetAllMocks(); setup(); });
+beforeEach(() => { vi.resetAllMocks(); HTMLDialogElement.prototype.showModal = vi.fn(function (this: HTMLDialogElement) { this.open = true; }); HTMLDialogElement.prototype.close = vi.fn(function (this: HTMLDialogElement) { this.open = false; }); setup(); });
 afterEach(cleanup);
 it('submits only the message and refreshes the saved application', async () => {
     mocks.post.mockResolvedValue(application);
@@ -122,14 +123,18 @@ it('shows owner removal controls and protects the owner membership', async () =>
     expect(screen.queryByRole('button', { name: 'Remove Maya' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Leave team' })).toBeNull();
     await userEvent.setup().click(screen.getByRole('button', { name: 'Remove Noah' }));
+    expect(mocks.remove).not.toHaveBeenCalled();
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Confirm removal' }));
     expect(mocks.remove).toHaveBeenCalledWith('/projects/project-a/members/applicant', expect.any(AbortSignal));
     expect(mocks.reload).toHaveBeenCalledOnce();
 });
-it('lets a member leave and returns to application history', async () => {
+it('lets a member confirm leaving and returns to current teams', async () => {
     mocks.remove.mockResolvedValue({ removed: true }); view('/projects/project-a/team');
     expect(screen.queryByRole('button', { name: 'Remove Maya' })).toBeNull();
     await userEvent.setup().click(screen.getByRole('button', { name: 'Leave team' }));
-    expect(await screen.findByRole('heading', { name: 'My Applications' })).toBeTruthy();
+    expect(mocks.remove).not.toHaveBeenCalled();
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Confirm leave' }));
+    expect(await screen.findByRole('heading', { name: 'My teams' })).toBeTruthy();
 });
 it('keeps archived roster read only', () => {
     setup({ roster: { ...team, project: { ...summary, status: 'archived' } } });
@@ -156,4 +161,30 @@ it('ignores a late response after leaving the screen', async () => {
     expect(mocks.post.mock.calls[0][2].aborted).toBe(true);
     await act(async () => finish(application));
     await waitFor(() => expect(mocks.reload).not.toHaveBeenCalled());
+});
+
+it('cancels leaving without changing membership', async () => {
+    view('/projects/project-a/team');
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Leave team' }));
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(mocks.remove).not.toHaveBeenCalled();
+});
+it('requires confirmation before a final rejection and keeps failures retryable', async () => {
+    mocks.patch.mockRejectedValue(new Error('Could not save decision'));
+    view('/projects/project-a/applications');
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Reject Noah' }));
+    expect(mocks.patch).not.toHaveBeenCalled();
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Confirm rejection' }));
+    expect(mocks.patch).toHaveBeenCalledWith('/applications/app-a/decision', { status: 'rejected' }, expect.any(AbortSignal));
+    expect(screen.getByRole('dialog').textContent).toContain('Could not save decision');
+    expect(screen.getAllByRole('alert')).toHaveLength(1);
+    expect(mocks.reload).not.toHaveBeenCalled();
+});
+it('sends accepted application history to current teams rather than a possibly revoked roster', () => {
+    mocks.resource.mockReturnValue(data({ items: [{ ...application, status: 'accepted', project: { ...summary, status: 'in_progress' } }], next_cursor: null }));
+    view('/my-applications');
+    expect(screen.getByRole('link', { name: 'View your current teams' }).getAttribute('href')).toBe('/my-teams');
+    expect(screen.queryByRole('link', { name: 'View team' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'View project' })).toBeNull();
 });

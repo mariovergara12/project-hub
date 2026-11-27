@@ -3,7 +3,7 @@ import type { FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { PageHeading, PageLoading } from './ui';
 import { api, loadCatalog } from './api';
-import { useResource } from './use-resource';
+import { refreshResources, useResource } from './use-resource';
 import type { CatalogItem, Me, Page, Project } from './types';
 
 export function ProjectEditor() {
@@ -60,7 +60,7 @@ export function ProjectForm({ me, initial }: { me: Me; initial?: Project }) {
             const result = initial
                 ? await api.patch<Project>(`/projects/${initial.id}`, body, controller.signal)
                 : await api.post<Project>('/projects', body, controller.signal);
-            if (!controller.signal.aborted) navigate(`/projects/${result.id}`);
+            if (!controller.signal.aborted) { refreshResources(['/me/projects', '/me/teams', '/projects', `/projects/${result.id}`]); navigate(`/projects/${result.id}`); }
         } catch (cause) { if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : 'Could not save project.'); }
         finally { submitting.current = false; if (!controller.signal.aborted) setPending(false); }
     }

@@ -5,7 +5,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.enums import ApplicationStatus, ProjectStatus
-from app.modules.projects.schemas import ProjectOwner
+from app.modules.projects.schemas import ProjectOwner, ProjectResponse
 
 
 class ApplicationCreate(BaseModel):
@@ -63,3 +63,14 @@ class RemovalResponse(BaseModel):
     project_id: UUID
     user_id: UUID
     removed: bool
+
+
+class MyTeamResponse(BaseModel):
+    project: ProjectResponse
+    joined_at: datetime | None
+    is_owner: bool
+
+
+class MyTeamPage(BaseModel):
+    items: list[MyTeamResponse]
+    next_cursor: UUID | None

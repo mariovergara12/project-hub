@@ -15,12 +15,15 @@ from app.modules.collaboration.schemas import (
     ApplicationResponse,
     MemberPage,
     MemberResponse,
+    MyTeamPage,
+    MyTeamResponse,
     ProjectApplicationsPage,
     ProjectSummary,
     RemovalResponse,
 )
 from app.modules.projects import repository as projects
 from app.modules.projects.schemas import ProjectOwner
+from app.modules.projects.service import project_response
 from app.modules.users.repository import get_or_create_user
 from app.modules.users.service import IdentityNoLongerExists, is_missing_auth_identity
 
@@ -29,6 +32,28 @@ class CollaborationError(Exception):
     def __init__(self, status: int, message: str):
         self.status = status
         super().__init__(message)
+
+
+def own_teams(
+    session: Session,
+    user_id: UUID,
+    *,
+    limit: int,
+    cursor: UUID | None,
+    status: ProjectStatus | None,
+) -> MyTeamPage:
+    rows = repository.own_teams(session, user_id, limit=limit, cursor=cursor, status=status)
+    return MyTeamPage(
+        items=[
+            MyTeamResponse(
+                project=project_response(project, count),
+                joined_at=joined_at,
+                is_owner=project.owner_id == user_id,
+            )
+            for project, count, joined_at in rows[:limit]
+        ],
+        next_cursor=rows[limit - 1][0].id if len(rows) > limit else None,
+    )
 
 
 @contextmanager

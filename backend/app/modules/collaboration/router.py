@@ -3,7 +3,7 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, Response
 
 from app.core.responses import AUTH_ERROR_RESPONSES, ErrorResponse, ProfileValidationErrorResponse
-from app.models.enums import ApplicationStatus
+from app.models.enums import ApplicationStatus, ProjectStatus
 from app.modules.collaboration import service
 from app.modules.collaboration.schemas import (
     ApplicationCreate,
@@ -11,6 +11,7 @@ from app.modules.collaboration.schemas import (
     ApplicationPage,
     ApplicationResponse,
     MemberPage,
+    MyTeamPage,
     ProjectApplicationsPage,
     RemovalResponse,
 )
@@ -46,6 +47,18 @@ def perform(action, *args, **kwargs):
         raise HTTPException(status_code=exc.status, detail=str(exc)) from None
     except IdentityNoLongerExists:
         raise HTTPException(status_code=401, detail="Account no longer exists") from None
+
+
+@router.get("/me/teams", response_model=MyTeamPage)
+def my_teams(
+    user_id: DiscoveryUser,
+    session: DatabaseSession,
+    limit: PageLimit = 20,
+    cursor: PageCursor = None,
+    status: ProjectStatus | None = None,
+):
+    """Current memberships and owned projects. Past acceptances do not grant access."""
+    return perform(service.own_teams, session, user_id, limit=limit, cursor=cursor, status=status)
 
 
 @router.post(

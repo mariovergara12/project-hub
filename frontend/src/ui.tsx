@@ -48,7 +48,7 @@ export function EmptyState({ title, description, children }: { title: string; de
     return <div className="empty-state"><Icon name="folder" /><h2>{title}</h2><p>{description}</p>{children}</div>;
 }
 
-export function ProjectCard({ project, editable = false }: { project: Project; editable?: boolean }) {
+export function ProjectCard({ project, editable = false, children }: { project: Project; editable?: boolean; children?: ReactNode }) {
     return <article className="project-card">
         <div className="card-topline"><span className="project-type">{labels[project.project_type]}</span><StatusBadge status={project.status} /></div>
         <h2><Link to={`/projects/${project.id}`}>{project.title}</Link></h2>
@@ -56,7 +56,7 @@ export function ProjectCard({ project, editable = false }: { project: Project; e
         <div className="tag-list">{project.skills.slice(0, 3).map(skill => <span className="tag" key={skill.id}>{skill.name}</span>)}{project.skills.length > 3 && <span className="tag">+{project.skills.length - 3} more</span>}</div>
         <p className="card-owner">{project.owner.display_name || 'Project owner'}{project.owner.faculty_verified && <span className="verified-label"><Icon name="check" />Verified faculty</span>}</p>
         <div className="card-facts"><span><Icon name="clock" />{project.weekly_hours === null ? 'Hours not specified' : `${project.weekly_hours} hrs / week`}</span><span><Icon name="team" />{project.member_count}{project.max_members === null ? ' members' : ` / ${project.max_members} members`}</span></div>
-        <div className="card-actions"><Link to={`/projects/${project.id}`}>View project <Icon name="arrow" /></Link>{editable && project.status !== 'archived' && <Link to={`/projects/${project.id}/edit`}>Edit project</Link>}</div>
+        <div className="card-actions"><Link to={`/projects/${project.id}`}>View project <Icon name="arrow" /></Link>{editable && project.status !== 'archived' && <Link to={`/projects/${project.id}/edit`}>Edit project</Link>}{children}</div>
     </article>;
 }
 

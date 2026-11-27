@@ -6,7 +6,7 @@ import type { CatalogItem, Me, Page } from './types';
 type Kind = 'skills' | 'interests';
 type SelectionResponse = { skills: CatalogItem[] } | { interests: CatalogItem[] };
 
-function SelectionGroup({ kind, initial }: { kind: Kind; initial: CatalogItem[] }) {
+function SelectionGroup({ kind, initial, onSaved }: { kind: Kind; initial: CatalogItem[]; onSaved?: (kind: Kind, items: CatalogItem[]) => void }) {
     const catalog = useResource<Page<CatalogItem>>(`/${kind}`, loadCatalog);
     const [selected, setSelected] = useState(() => new Set(initial.map(item => item.id)));
     const [pending, setPending] = useState(false);
@@ -28,6 +28,7 @@ function SelectionGroup({ kind, initial }: { kind: Kind; initial: CatalogItem[] 
             const saved = 'skills' in result ? result.skills : result.interests;
             setSelected(new Set(saved.map(item => item.id)));
             setMessage(`${title} saved.`);
+            onSaved?.(kind, saved);
         } catch (cause) {
             setError(cause instanceof Error ? cause.message : `Could not save ${kind}.`);
         } finally { submitting.current = false; setPending(false); }
@@ -58,9 +59,9 @@ function SelectionGroup({ kind, initial }: { kind: Kind; initial: CatalogItem[] 
     </section>;
 }
 
-export function ProfileSelections({ me }: { me: Me }) {
+export function ProfileSelections({ me, onSaved }: { me: Me; onSaved?: (kind: Kind, items: CatalogItem[]) => void }) {
     return <>
-        <SelectionGroup kind="skills" initial={me.skills || []} />
-        <SelectionGroup kind="interests" initial={me.interests || []} />
+        <SelectionGroup kind="skills" initial={me.skills || []} onSaved={onSaved} />
+        <SelectionGroup kind="interests" initial={me.interests || []} onSaved={onSaved} />
     </>;
 }

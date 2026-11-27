@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import type { FormEvent } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { api } from './api';
 import { PageHeading, PageLoading } from './ui';
 import { useResource } from './use-resource';
@@ -52,6 +53,8 @@ function ProfileForm({ me, saved }: { me: Me; saved: () => void }) {
 }
 
 export function Profile() {
+    const [params] = useSearchParams();
+    const [selectionCounts, setSelectionCounts] = useState<Partial<Record<'skills' | 'interests', number>>>({});
     const resource = useResource<Me>('/me');
     const [message, setMessage] = useState('');
     return <main className="app-page">
@@ -59,10 +62,11 @@ export function Profile() {
         {message && <p role="status">{message}</p>}
         {resource.loading && <PageLoading>Loading your profile…</PageLoading>}
         {resource.error && <div role="alert">{resource.error.message} <button onClick={resource.reload}>Retry profile</button></div>}
+        {resource.data && (params.has('welcome') || !resource.data.profile) && <section className="onboarding-panel" aria-label="Profile setup"><h2>Welcome to Project Hub</h2><p>Start with your name so teammates know who you are. Skills and interests are optional and help people find a good fit.</p><ol className="onboarding-steps"><li>{resource.data.profile ? '✓ Name saved' : 'Add your display name'}</li><li>{(selectionCounts.skills ?? resource.data.skills.length) ? '✓ Skills saved' : 'Choose skills (optional)'}</li><li>{(selectionCounts.interests ?? resource.data.interests.length) ? '✓ Interests saved' : 'Choose interests (optional)'}</li></ol><nav className="subnav">{resource.data.profile && <Link className="button button-primary" to="/main">Continue to projects</Link>}<Link to="/main">Explore projects now</Link></nav></section>}
         {resource.data && <section className="profile-panel">
             <div className="account-facts"><p>Role: <strong>{resource.data.role}</strong></p><p>Faculty verification: <strong>{resource.data.faculty_verified_at ? 'Verified' : 'Not verified'}</strong></p></div>
             <ProfileForm me={resource.data} saved={() => { setMessage('Profile saved.'); resource.reload(); }} />
-            <ProfileSelections me={resource.data} />
+            <ProfileSelections me={resource.data} onSaved={(kind, items) => setSelectionCounts(counts => ({ ...counts, [kind]: items.length }))} />
         </section>}
     </main>;
 }

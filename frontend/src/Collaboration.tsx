@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { EmptyState, PageHeading, PageLoading, StatusBadge } from './ui';
 import { api } from './api';
 import { ApiError } from './lib/api-client';
-import { useResource } from './use-resource';
+import { refreshResources, useResource } from './use-resource';
+import { ConfirmDialog } from './ConfirmDialog';
 import { useMutation } from './use-mutation';
 import type { ApplicationRecord, Me, Page, Project, ProjectApplications, Team } from './types';
 
@@ -53,7 +55,7 @@ export function ProjectParticipation({ project }: { project: Project }) {
         {mine.data && <>
             {current && <><p>Application status: <StatusBadge status={current.status} /></p><p className="project-description">{current.message}</p></>}
             {current?.status === 'pending' && <button disabled={mutation.pending} onClick={() => void mutation.run(signal => api.patch(`/applications/${current.id}/withdraw`, {}, signal), mine.reload)}>{mutation.pending ? 'Withdrawing…' : 'Withdraw application'}</button>}
-            {current?.status === 'accepted' && <p>Your application was accepted. <Link to={`/projects/${project.id}/team`}>View team</Link>. Leaving or removal ends team access; rejoining is not available yet.</p>}
+            {current?.status === 'accepted' && <p>Your application was accepted. <Link to="/my-teams">View your current teams</Link>. Leaving or removal ends team access; rejoining is not available yet.</p>}
             {current?.status === 'rejected' && <p>This application was rejected. Resubmission is not available.</p>}
             {canSubmit && <form onSubmit={apply}>
                 <fieldset disabled={mutation.pending} className="profile-fields"><legend>{current ? 'Resubmit application' : 'Apply to this project'}</legend>
@@ -82,11 +84,11 @@ export function MyApplications() {
             <h2>{item.project.title}</h2>
             <p>Application status: <StatusBadge status={item.status} /> · Project: {item.project.status.replaceAll('_',' ')}</p>
             <p className="project-description">{item.message || 'No message included.'}</p>
-            <Link to={`/projects/${item.project.id}`}>View project</Link>
+            {item.project.status === 'open' && <Link to={`/projects/${item.project.id}`}>View project</Link>}
             {item.status === 'pending' && <button disabled={mutation.pending} onClick={() => void mutation.run(signal => api.patch(`/applications/${item.id}/withdraw`, {}, signal), applications.reload)}>Withdraw application</button>}
             {item.status === 'withdrawn' && item.project.status === 'open' && <p>Open the project to resubmit if there is space.</p>}
             {item.status === 'rejected' && <p>Rejected applications cannot be resubmitted.</p>}
-            {item.status === 'accepted' && <p><Link to={`/projects/${item.project.id}/team`}>View team</Link>. Acceptance stays in your history after leaving or removal; rejoining is not available yet.</p>}
+            {item.status === 'accepted' && <p><Link to="/my-teams">View your current teams</Link>. Acceptance stays in your history after leaving or removal; rejoining is not available yet.</p>}
         </article>)}</div>
         <p className="section-note">Private project details and rosters are available only to their owner and current members.</p>
         {mutation.error && <p role="alert">{mutation.error}</p>}
@@ -103,9 +105,10 @@ function ApplicantList({ projectId }: { projectId: string }) {
     const query = usePageQuery();
     const applications = useResource<ProjectApplications>(`/projects/${encodeURIComponent(projectId)}/applications?${query}`);
     const mutation = useMutation();
+    const [rejection, setRejection] = useState<ApplicationRecord | null>(null);
     const projectStatus = applications.data?.project.status;
     function decide(item: ApplicationRecord, status: 'accepted' | 'rejected') {
-        void mutation.run(signal => api.patch(`/applications/${item.id}/decision`, { status }, signal), applications.reload);
+        void mutation.run(signal => api.patch(`/applications/${item.id}/decision`, { status }, signal), () => { setRejection(null); refreshResources(['/me/teams', '/me/projects', '/projects', `/projects/${projectId}`, `/projects/${projectId}/members`]); applications.reload(); });
     }
     return <main className="app-page">
         <PageHeader title="Review applications"><><Link to={`/projects/${projectId}`}>Project details</Link><Link to={`/projects/${projectId}/team`}>Team</Link></></PageHeader>
@@ -122,13 +125,14 @@ function ApplicantList({ projectId }: { projectId: string }) {
                 <p className="project-description">{item.message || 'No message included.'}</p>
                 {item.status === 'pending' && <fieldset disabled={mutation.pending || projectStatus === 'archived'}><legend>Review {item.applicant.display_name || 'applicant'}</legend>
                     <button className="button-primary" disabled={projectStatus !== 'open'} onClick={() => decide(item, 'accepted')}>Accept {item.applicant.display_name || 'applicant'}</button>
-                    <button className="button-danger" onClick={() => decide(item, 'rejected')}>Reject {item.applicant.display_name || 'applicant'}</button>
+                    <button className="button-danger" onClick={() => setRejection(item)}>Reject {item.applicant.display_name || 'applicant'}</button>
                 </fieldset>}
             </article>)}</div>
             <Pager next={applications.data.next_cursor} />
         </>}
         {mutation.pending && <PageLoading>Saving decision…</PageLoading>}
-        {mutation.error && <p role="alert">{mutation.error}</p>}
+        {rejection && <ConfirmDialog title="Reject this application?" description="This decision is final. The applicant cannot resubmit this application." confirmLabel="Confirm rejection" pending={mutation.pending} error={mutation.error} cancel={() => setRejection(null)} confirm={() => decide(rejection, 'rejected')} />}
+        {mutation.error && !rejection && <p role="alert">{mutation.error}</p>}
     </main>;
 }
 
@@ -145,11 +149,14 @@ function TeamList({ projectId }: { projectId: string }) {
     const me = useResource<Me>('/me');
     const mutation = useMutation();
     const navigate = useNavigate();
+    const [removal, setRemoval] = useState<{ id: string; name: string } | null>(null);
     const owner = roster.data?.project.owner_id === me.data?.id;
     const archived = roster.data?.project.status === 'archived';
     function remove(userId: string) {
         void mutation.run(signal => api.delete(`/projects/${projectId}/members/${userId}`, signal), () => {
-            if (userId === me.data?.id) navigate('/my-applications'); else roster.reload();
+            setRemoval(null);
+            refreshResources(['/me/teams', '/me/projects', '/projects', `/projects/${projectId}`]);
+            if (userId === me.data?.id) navigate('/my-teams'); else roster.reload();
         });
     }
     return <main className="app-page">
@@ -164,12 +171,13 @@ function TeamList({ projectId }: { projectId: string }) {
             <ul className="team-list">{roster.data.items.map(item => <li key={item.user.id}>
                 <span className="member-avatar" aria-hidden="true">{(item.user.display_name || 'Team member').split(' ').map(part => part[0]).slice(0, 2).join('')}</span><div><h3>{item.user.display_name || 'Team member'}{item.is_owner ? ' · Owner' : ''}</h3>
                 <p>{item.user.role}{item.user.faculty_verified ? ' · Verified faculty' : ''}</p></div>
-                {!item.is_owner && !archived && (owner || item.user.id === me.data?.id) && <button disabled={mutation.pending} onClick={() => remove(item.user.id)}>{item.user.id === me.data?.id ? 'Leave team' : `Remove ${item.user.display_name || 'member'}`}</button>}
+                {!item.is_owner && !archived && (owner || item.user.id === me.data?.id) && <button disabled={mutation.pending} onClick={() => setRemoval({ id: item.user.id, name: item.user.display_name || 'this member' })}>{item.user.id === me.data?.id ? 'Leave team' : `Remove ${item.user.display_name || 'member'}`}</button>}
             </li>)}</ul>
             <p className="section-note">Leaving or removal keeps the application decision as history. It cannot be used to rejoin.</p>
             <Pager next={roster.data.next_cursor} />
         </>}
+        {removal && <ConfirmDialog title={removal.id === me.data?.id ? 'Leave this team?' : `Remove ${removal.name}?`} description="This ends team access. The application decision stays in history and cannot be used to rejoin." confirmLabel={removal.id === me.data?.id ? 'Confirm leave' : 'Confirm removal'} pending={mutation.pending} error={mutation.error} cancel={() => setRemoval(null)} confirm={() => remove(removal.id)} />}
         {mutation.pending && <PageLoading>Updating team…</PageLoading>}
-        {mutation.error && <p role="alert">{mutation.error}</p>}
+        {mutation.error && !removal && <p role="alert">{mutation.error}</p>}
     </main>;
 }

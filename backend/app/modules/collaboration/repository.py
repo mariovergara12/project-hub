@@ -1,10 +1,35 @@
 from uuid import UUID
 
-from sqlalchemy import delete, or_, select
+from sqlalchemy import and_, delete, or_, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.models import Application, Membership, Project, User
-from app.models.enums import ApplicationStatus
+from app.models.enums import ApplicationStatus, ProjectStatus
+from app.modules.projects.repository import visible_projects
+
+
+def own_teams(
+    session: Session,
+    user_id: UUID,
+    *,
+    limit: int,
+    cursor: UUID | None,
+    status: ProjectStatus | None,
+):
+    query = (
+        visible_projects(user_id)
+        .add_columns(Membership.joined_at)
+        .outerjoin(
+            Membership,
+            and_(Membership.project_id == Project.id, Membership.user_id == user_id),
+        )
+        .where(or_(Project.owner_id == user_id, Membership.user_id == user_id))
+    )
+    if cursor is not None:
+        query = query.where(Project.id > cursor)
+    if status is not None:
+        query = query.where(Project.status == status)
+    return list(session.execute(query.order_by(Project.id).limit(limit + 1)))
 
 
 def membership(session: Session, project_id: UUID, user_id: UUID) -> Membership | None:
