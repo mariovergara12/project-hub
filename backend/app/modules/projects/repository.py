@@ -4,6 +4,7 @@ from sqlalchemy import Select, delete, func, insert, or_, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.models import (
+    Application,
     Interest,
     Membership,
     Project,
@@ -12,7 +13,7 @@ from app.models import (
     Skill,
     User,
 )
-from app.models.enums import ProjectStatus, ProjectType
+from app.models.enums import ApplicationStatus, ProjectStatus, ProjectType
 from app.modules.projects.schemas import ProjectSkillInput
 
 
@@ -31,13 +32,35 @@ def visible_projects(user_id: UUID) -> Select:
         .subquery()
     )
     return (
-        select(Project, func.coalesce(member_counts.c.member_count, 0))
+        select(Project, func.coalesce(member_counts.c.member_count, 0).label("member_count"))
         .outerjoin(member_counts, member_counts.c.project_id == Project.id)
         .where(visibility_filter(user_id))
         .options(
             joinedload(Project.owner).joinedload(User.profile),
             selectinload(Project.skills).joinedload(ProjectSkill.skill),
             selectinload(Project.interests).joinedload(ProjectInterest.interest),
+        )
+    )
+
+
+def recommendation_candidates(session: Session, user_id: UUID) -> list:
+    query = visible_projects(user_id)
+    return list(
+        session.execute(
+            query.where(
+                Project.status == ProjectStatus.OPEN,
+                Project.owner_id != user_id,
+                ~Project.memberships.any(Membership.user_id == user_id),
+                Project.memberships.any(Membership.user_id == Project.owner_id),
+                or_(
+                    Project.max_members.is_(None),
+                    query.selected_columns.member_count < Project.max_members,
+                ),
+                ~Project.applications.any(
+                    (Application.applicant_id == user_id)
+                    & (Application.status != ApplicationStatus.WITHDRAWN)
+                ),
+            ).order_by(Project.id)
         )
     )
 

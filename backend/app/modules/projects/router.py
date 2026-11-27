@@ -18,6 +18,8 @@ from app.modules.projects.schemas import (
     ProjectStatusUpdate,
     ProjectUpdate,
 )
+from app.modules.recommendations import service as recommendations
+from app.modules.recommendations.schemas import RecommendedProjects
 from app.modules.users.service import IdentityNoLongerExists, read_me
 
 router = APIRouter(tags=["discovery"], responses=AUTH_ERROR_RESPONSES)
@@ -82,6 +84,20 @@ def list_projects(
         interest_id=interest_id,
     )
     return service.project_page(rows, limit)
+
+
+@router.get("/projects/recommended", response_model=RecommendedProjects)
+def recommended_projects(user_id: CurrentUserId, session: DatabaseSession) -> RecommendedProjects:
+    """Top ten positive matches, ordered by score descending then project UUID.
+
+    Skills: 50 points (required skills count twice); interests: 25;
+    availability: 15; experience: 10. Missing values earn no points.
+    Only projects the caller can still apply to are considered. No pagination.
+    """
+    try:
+        return recommendations.recommend(session, user_id)
+    except IdentityNoLongerExists:
+        raise HTTPException(status_code=401, detail="Account no longer exists") from None
 
 
 @router.get(

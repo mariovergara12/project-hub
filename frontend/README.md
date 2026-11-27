@@ -27,7 +27,7 @@ passwords to frontend configuration.
 | --- | --- |
 | `/` | Sign in or sign up. |
 | `/forgot-password`, `/reset-password`, `/auth/callback` | Recovery and email confirmation. |
-| `/main` | Find and filter projects. |
+| `/main` | Personal recommendations, project search, and filters. |
 | `/profile` | Edit your profile, skills, and interests. New accounts get a setup guide. |
 | `/my-projects`, `/projects/new` | Manage owned projects or create a draft. |
 | `/my-applications`, `/my-teams` | Application history and current teams. |

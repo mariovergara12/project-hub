@@ -39,3 +39,6 @@ export type MilestonePage = Page<Milestone> & {
     project: ProjectSummary;
     progress: { total: number; todo: number; in_progress: number; completed: number };
 };
+export type RecommendationProfileField = 'skills' | 'interests' | 'availability_hours' | 'experience_years';
+export type ProjectRecommendation = { project: Project; score: number; reasons: string[]; cautions: string[] };
+export type RecommendedProjects = { items: ProjectRecommendation[]; missing_fields: RecommendationProfileField[] };

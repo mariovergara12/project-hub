@@ -4,6 +4,7 @@ import { useResource } from './use-resource';
 import { loadCatalog } from './api';
 import { EmptyState, Icon, PageLoading, ProjectCard } from './ui';
 import { ProjectSearch } from './ProjectSearch';
+import { ProjectRecommendations } from './Recommendations';
 import type { CatalogItem, Page, Project } from './types';
 
 export function ProjectHub() {
@@ -13,6 +14,7 @@ export function ProjectHub() {
     const projects = useResource<Page<Project>>(`/projects?${query}`);
     const skills = useResource<Page<CatalogItem>>('/skills', loadCatalog);
     const interests = useResource<Page<CatalogItem>>('/interests', loadCatalog);
+    const showRecommendations = !['q', 'project_type', 'status', 'skill_id', 'interest_id', 'cursor'].some(name => params.get(name));
     const advancedCount = ['status', 'skill_id', 'interest_id'].filter(name => params.has(name)).length;
     function search(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -39,6 +41,8 @@ export function ProjectHub() {
     return <main className="app-page">
         <header className="dashboard-welcome"><span className="welcome-label"><Icon name="team" />Your campus, connected</span><h1>Find a project. Make it happen.</h1><p>Explore student projects and faculty research, or bring your own idea.</p></header>
         <ProjectSearch key={`project-search:${params.get('q') || ''}`} initialQuery={params.get('q') || ''} onSearch={searchProjects} />
+        {showRecommendations && <ProjectRecommendations />}
+        <h2 className="browse-heading">Explore all projects</h2>
         <form onSubmit={search} key={`filters:${params.toString()}`}>
             <input type="hidden" name="q" value={params.get('q') || ''} />
             <input type="hidden" name="project_type" value={params.get('project_type') || ''} />

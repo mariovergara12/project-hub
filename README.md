@@ -4,7 +4,7 @@ Find a university project, apply to join, and work with your team. Students can
 create projects; verified faculty can also post research opportunities.
 
 Built with React, TypeScript, FastAPI, PostgreSQL, and Supabase Auth. Includes
-profiles, project search, applications, teams, and milestone tracking.
+profiles, project search and recommendations, applications, teams, and milestones.
 
 [Frontend](https://project-hub-client-hazel.vercel.app/) ·
 [Hosted API docs](https://project-hub-api-ruby.vercel.app/docs)

@@ -16,7 +16,7 @@ not used. `/health`, `/docs`, and `/openapi.json` are public.
 - IDs are UUID strings. Timestamps use ISO 8601; milestone due dates use `YYYY-MM-DD`.
 - Text is trimmed. Unknown JSON body fields are rejected. Do not send role or owner overrides.
 - On PATCH, omitted fields stay unchanged. Use `null` only where the schema allows it.
-- Lists return `items` and `next_cursor`. Use `limit` (1–100, default 20) and send the previous `next_cursor` to load more. `null` means the end.
+- Paginated lists return `items` and `next_cursor`. Use `limit` (1–100, default 20) and send the previous `next_cursor` to load more. `null` means the end.
 - Reset the cursor when filters change. Lists sort by UUID, not name or date; roster cursors use member **user IDs**.
 - Public user summaries contain `id`, `display_name` (possibly null), `role`, and `faculty_verified`. They exclude email and private profile fields.
 
@@ -47,6 +47,7 @@ A failed replacement leaves the saved list unchanged.
 | Method | Route | Action |
 | --- | --- | --- |
 | GET | `/projects` | List visible projects. Filters: `q`, `project_type`, `status`, `skill_id`, `interest_id`. |
+| GET | `/projects/recommended` | Top 10 personal matches; no pagination. |
 | GET | `/projects/{project_id}` | Read one visible project. |
 | GET | `/me/projects` | List owned projects; accepts `status`. |
 | POST | `/projects` | Create a draft with `title` and `description`; returns 201. |
@@ -62,6 +63,14 @@ Project responses include text/type/status, hours/experience/capacity,
 (`id`, `name`, `required`), `interests` (`id`, `name`), and timestamps.
 Optional numeric fields can be null; catalogs and selections use arrays.
 See [project management](project-management.md) for editing rules and lifecycle.
+
+Recommendations return `items` (`project`, `score`, `reasons`, `cautions`) and
+`missing_fields` (`skills`, `interests`, `availability_hours`, `experience_years`).
+Scores use up to 50 skill points (required skills count twice), 25 interest points,
+15 for sufficient availability, and 10 for sufficient experience. Missing data earns
+no points; only positive scores are returned, highest first, with UUID order for ties.
+Projects must be open, have room and an owner membership, and still accept the caller's
+application: owned/joined projects and non-withdrawn applications are excluded.
 
 ## Applications and teams
 
