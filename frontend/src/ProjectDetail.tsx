@@ -1,9 +1,9 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
-import { api } from './api';
 import { Link, useParams } from 'react-router-dom';
-import { AccountAccess } from './AccountAccess';
+import { api } from './api';
 import { ApiError } from './lib/api-client';
 import { useResource } from './use-resource';
+import { Icon, PageHeading, PageLoading, StatusBadge } from './ui';
 import type { Me, Project } from './types';
 
 const ProjectParticipation = lazy(() => import('./Collaboration').then(module => ({ default: module.ProjectParticipation })));
@@ -14,7 +14,7 @@ export function ProjectDetail() {
 }
 
 function ProjectDetailPage({ projectId }: { projectId: string }) {
-    const project = useResource<Project>(`/projects/${encodeURIComponent(projectId || '')}`);
+    const project = useResource<Project>(`/projects/${encodeURIComponent(projectId)}`);
     const me = useResource<Me>('/me');
     const [pending, setPending] = useState(false);
     const submitting = useRef(false);
@@ -22,6 +22,7 @@ function ProjectDetailPage({ projectId }: { projectId: string }) {
     useEffect(() => () => request.current?.abort(), []);
     const [error, setError] = useState('');
     const value = project.data;
+    const owner = value?.owner.id === me.data?.id;
     const next = value && ({ draft: 'open', open: 'in_progress', in_progress: 'completed' } as Partial<Record<Project['status'], Project['status']>>)[value.status];
     const canPublish = value?.project_type !== 'research_opportunity' || (me.data?.role === 'faculty' && !!me.data.faculty_verified_at);
     async function changeStatus(status: Project['status']) {
@@ -36,46 +37,37 @@ function ProjectDetailPage({ projectId }: { projectId: string }) {
         finally { submitting.current = false; if (!controller.signal.aborted) setPending(false); }
     }
     return <main className="app-page">
-        <header><h1>Project details</h1><Link to="/main">Back to Project Hub</Link></header>
-        <AccountAccess />
-        <Link to="/my-projects">My Projects</Link>
+        <PageHeading eyebrow={value?.project_type === 'research_opportunity' ? 'Faculty research' : 'Project overview'} title={value?.title || 'Project details'} actions={<Link to="/main">All projects <Icon name="arrow" /></Link>} />
         {me.error && <p role="alert">{me.error.message} <button onClick={me.reload}>Retry account</button></p>}
-        {project.loading && <p role="status">Loading project…</p>}
-        {project.error && <div role="alert">
-            {project.error instanceof ApiError && project.error.status === 404
-                ? 'Project not found or unavailable to your account.' : project.error.message}
-            <button onClick={project.reload}>Retry project</button>
-        </div>}
+        {project.loading && <PageLoading>Loading project…</PageLoading>}
+        {project.error && <div role="alert">{project.error instanceof ApiError && project.error.status === 404 ? 'Project not found or unavailable to your account.' : project.error.message}<button onClick={project.reload}>Retry project</button></div>}
         {value && <article className="project-detail">
-            <h2>{value.title}</h2>
-            <nav><Link to={`/projects/${value.id}/team`}>View team</Link>{value.owner.id === me.data?.id && <> · <Link to={`/projects/${value.id}/applications`}>Review applications</Link></>}</nav>
-            {value.owner.id === me.data?.id && <section aria-label="Manage project">
+            <nav className="subnav" aria-label="Project navigation"><StatusBadge status={value.status} />{owner && <><Link to={`/projects/${value.id}/team`}>View team</Link><Link to={`/projects/${value.id}/applications`}>Review applications</Link></>}</nav>
+            {owner && <section className="management-panel" aria-label="Manage project">
                 {value.status === 'draft' && <p>This is your private draft preview. Publish it to make it discoverable.</p>}
                 {value.status === 'archived' ? <p>Archived projects are read-only.</p> : <>
-                    <Link to={`/projects/${value.id}/edit`}>Edit project</Link>
+                    <Link to={`/projects/${value.id}/edit`}>Edit project <Icon name="arrow" /></Link>
                     <fieldset disabled={pending || project.loading}><legend>Project status</legend>
-                        {next && <button onClick={() => changeStatus(next)} disabled={next === 'open' && !canPublish}>{pending ? 'Updating…' : next === 'open' ? 'Publish project' : next === 'in_progress' ? 'Start project' : 'Complete project'}</button>}
-                        <button onClick={() => changeStatus('archived')}>Archive project</button>
+                        {next && <button className="button-primary" onClick={() => changeStatus(next)} disabled={next === 'open' && !canPublish}>{pending ? 'Updating…' : next === 'open' ? 'Publish project' : next === 'in_progress' ? 'Start project' : 'Complete project'}</button>}
+                        <button className="button-danger" onClick={() => changeStatus('archived')}>Archive project</button>
                         <p>Archiving makes this project read-only and cannot be undone here.</p>
                     </fieldset>
                     {next === 'open' && !canPublish && <p>Publishing research requires verified faculty.</p>}
                 </>}
                 {error && <p role="alert">{error}</p>}
             </section>}
-            <p className="project-description">{value.description}</p>
-            <dl>
-                <dt>Type</dt><dd>{value.project_type.replaceAll('_', ' ')}</dd>
-                <dt>Status</dt><dd>{value.status.replaceAll('_', ' ')}</dd>
-                <dt>Owner</dt><dd>{value.owner.display_name || 'Project owner'} · {value.owner.role}{value.owner.faculty_verified ? ' · Verified faculty' : ''}</dd>
-                <dt>Weekly hours</dt><dd>{value.weekly_hours ?? 'Unspecified'}</dd>
-                <dt>Minimum experience (years)</dt><dd>{value.minimum_experience_years ?? 'Unspecified'}</dd>
-                <dt>Team</dt><dd>{value.member_count} {value.member_count === 1 ? 'member' : 'members'} · {value.max_members === null ? 'No capacity limit set' : `Capacity ${value.max_members}`}</dd>
-            </dl>
-            {me.data && value.owner.id !== me.data.id && <Suspense fallback={<p role="status">Loading application options…</p>}><ProjectParticipation key={value.id} project={value} /></Suspense>}
-            <h3>Skills</h3>
-            {value.skills.length ? <ul>{value.skills.map(skill => <li key={skill.id}>{skill.name} · {skill.required ? 'Required' : 'Optional'}</li>)}</ul> : <p>No skills listed.</p>}
-            <h3>Interests</h3>
-            {value.interests.length ? <ul>{value.interests.map(item => <li key={item.id}>{item.name}</li>)}</ul> : <p>No interests listed.</p>}
+            <div className="detail-grid"><div className="detail-content">
+                <h2>About the project</h2><p className="project-description">{value.description}</p>
+                <h3>Skills</h3>{value.skills.length ? <ul>{value.skills.map(skill => <li key={skill.id}>{skill.name} · {skill.required ? 'Required' : 'Optional'}</li>)}</ul> : <p className="form-note">No skills listed.</p>}
+                <h3>Interests</h3>{value.interests.length ? <div className="tag-list">{value.interests.map(item => <span className="tag" key={item.id}>{item.name}</span>)}</div> : <p className="form-note">No interests listed.</p>}
+            </div><aside className="detail-sidebar" aria-label="Project information"><dl>
+                <dt>Project owner</dt><dd>{value.owner.display_name || 'Project owner'}{value.owner.faculty_verified && <span className="verified-label"> · Verified faculty</span>}</dd>
+                <dt>Project type</dt><dd>{value.project_type === 'research_opportunity' ? 'Faculty research' : 'Student project'}</dd>
+                <dt>Weekly hours</dt><dd>{value.weekly_hours === null ? 'Unspecified' : `${value.weekly_hours} hours per week`}</dd>
+                <dt>Minimum experience</dt><dd>{value.minimum_experience_years === null ? 'Unspecified' : `${value.minimum_experience_years} years`}</dd>
+                <dt>Team capacity</dt><dd>{value.member_count} {value.member_count === 1 ? 'member' : 'members'} · {value.max_members === null ? 'No capacity limit set' : `Capacity ${value.max_members}`}</dd>
+            </dl></aside></div>
+            {me.data && !owner && <Suspense fallback={<PageLoading>Loading application options…</PageLoading>}><ProjectParticipation key={value.id} project={value} /></Suspense>}
         </article>}
     </main>;
 }

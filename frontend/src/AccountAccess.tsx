@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from './auth-context';
 import { supabase } from './lib/supabase';
+import { Icon } from './ui';
 
 export function AccountAccess() {
     const { session } = useAuth();
@@ -18,8 +19,8 @@ export function AccountAccess() {
         } finally { setPending(false); }
     }
     return <section className="account-access" aria-label="Your account">
-        <p>Signed in as <strong>{session?.user.email}</strong></p>
-        <button onClick={signOut} disabled={pending}>{pending ? 'Logging out…' : 'Log Out'}</button>
+        <p><span className="account-caption">Signed in as </span><strong>{session?.user.email}</strong></p>
+        <button className="button-quiet" aria-label={pending ? 'Logging out…' : 'Log Out'} onClick={signOut} disabled={pending}><Icon name="logout" /><span className="logout-label">{pending ? 'Logging out…' : 'Log Out'}</span></button>
         {error && <p role="alert">{error}</p>}
     </section>;
 }

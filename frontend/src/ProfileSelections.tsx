@@ -40,8 +40,8 @@ function SelectionGroup({ kind, initial }: { kind: Kind; initial: CatalogItem[] 
         <fieldset disabled={pending || !catalog.data} className="selection-fields">
             <legend>Select {kind}</legend>
             {catalog.data?.items.length === 0 && <p>No {kind} available.</p>}
-            {catalog.data?.items.map(item => <label key={item.id} style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <input type="checkbox" style={{ width: 'auto' }} checked={selected.has(item.id)}
+            {catalog.data?.items.map(item => <label key={item.id} className="selection-option">
+                <input type="checkbox" checked={selected.has(item.id)}
                     disabled={!selected.has(item.id) && selected.size >= 50}
                     onChange={event => {
                         const next = new Set(selected);

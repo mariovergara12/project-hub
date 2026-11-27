@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { AccountAccess } from './AccountAccess';
+import { PageHeading, PageLoading } from './ui';
 import { api, loadCatalog } from './api';
 import { useResource } from './use-resource';
 import type { CatalogItem, Me, Page, Project } from './types';
@@ -10,9 +10,8 @@ export function ProjectEditor() {
     const { projectId } = useParams();
     const me = useResource<Me>('/me');
     return <main className="app-page">
-        <header><h1>{projectId ? 'Edit project' : 'Create project'}</h1><Link to="/my-projects">My Projects</Link></header>
-        <AccountAccess />
-        {me.loading && <p role="status">Loading account…</p>}
+        <PageHeading eyebrow="Your workspace" title={projectId ? 'Edit project' : 'Create project'} description="Set out the idea, the skills you need, and how your team will work together." actions={<Link to="/my-projects">Back to my projects</Link>} />
+        {me.loading && <PageLoading>Loading account…</PageLoading>}
         {me.error && <p role="alert">{me.error.message} <button onClick={me.reload}>Retry account</button></p>}
         {me.data && (projectId ? <ExistingProject key={projectId} id={projectId} me={me.data} /> : <ProjectForm key={me.data.id} me={me.data} />)}
     </main>;
@@ -20,7 +19,7 @@ export function ProjectEditor() {
 
 function ExistingProject({ id, me }: { id: string; me: Me }) {
     const project = useResource<Project>(`/projects/${encodeURIComponent(id)}`);
-    if (project.loading) return <p role="status">Loading project…</p>;
+    if (project.loading) return <PageLoading>Loading project…</PageLoading>;
     if (project.error) return <p role="alert">{project.error.message} <button onClick={project.reload}>Retry project</button></p>;
     if (!project.data) return null;
     if (project.data.owner.id !== me.id) return <p role="alert">Only the project owner can edit this project.</p>;
@@ -65,7 +64,7 @@ export function ProjectForm({ me, initial }: { me: Me; initial?: Project }) {
         } catch (cause) { if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : 'Could not save project.'); }
         finally { submitting.current = false; if (!controller.signal.aborted) setPending(false); }
     }
-    return <>
+    return <div className="project-editor">
         <p>{initial ? 'Save your project details below.' : 'New projects start as private drafts. Preview the draft before publishing.'} The owner counts as one team member.</p>
         {initial?.project_type === 'research_opportunity' && !verified && <p role="alert">Research edits require verified faculty. You can change this to a student project or archive it from its details page.</p>}
         {skills.loading || interests.loading ? <p role="status">Loading project options…</p> : null}
@@ -74,8 +73,8 @@ export function ProjectForm({ me, initial }: { me: Me; initial?: Project }) {
         <form onSubmit={save}>
             <fieldset className="profile-fields" disabled={pending || !skills.data || !interests.data}>
                 <legend>Project details</legend>
-                <label>Title<input name="title" required maxLength={200} defaultValue={initial?.title || ''} /></label>
-                <label>Description<textarea name="description" required maxLength={10000} rows={5} defaultValue={initial?.description || ''} /></label>
+                <label className="field-wide">Title<input name="title" required maxLength={200} defaultValue={initial?.title || ''} /></label>
+                <label className="field-wide">Description<textarea name="description" required maxLength={10000} rows={5} defaultValue={initial?.description || ''} /></label>
                 <label>Project type<select name="project_type" defaultValue={initial?.project_type || 'student_project'}>
                     <option value="student_project">Student project</option>
                     {(verified || initial?.project_type === 'research_opportunity') && <option value="research_opportunity" disabled={!verified}>Research opportunity</option>}
@@ -104,5 +103,5 @@ export function ProjectForm({ me, initial }: { me: Me; initial?: Project }) {
             {error && <p role="alert">{error}</p>}
         </form>
         <Link to={initial ? `/projects/${initial.id}` : '/my-projects'}>Cancel</Link>
-    </>;
+    </div>;
 }

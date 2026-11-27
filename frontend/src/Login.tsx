@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from './auth-context';
 import { supabase } from './lib/supabase';
+import { Brand, CollaborationArt, PageLoading } from './ui';
 
 export function Login() {
     const { session, loading } = useAuth();
@@ -40,16 +41,17 @@ export function Login() {
         }
     }
 
-    if (loading) return <p role="status">Loading your session…</p>;
+    if (loading) return <main className="app-page"><PageLoading>Loading your session…</PageLoading></main>;
     if (session) return <Navigate to="/main" replace />;
 
     return (
         <div className="login-page">
-            <header className="pageTitle"><h1>Project Hub</h1></header>
-            <main className="basic-container login-container">
+            <header className="login-header"><Brand linked={false} /><span>Student projects. Faculty research. Shared ambition.</span></header>
+            <main className="login-layout">
+                <section className="login-intro"><p className="eyebrow">A place for your next idea</p><h1>Bring your ideas.<br />Find your people.</h1><p>Connect with students and faculty across disciplines. Find a project to join, or build a team around your own.</p><CollaborationArt /></section>
                 <div className="login-card">
-                    <h2>Welcome to Project Hub</h2>
-                    <p>Log in with your Project Hub account.</p>
+                    <h2>Make something happen.</h2>
+                    <p>Log in to your account or sign up to get started.</p>
                     <form onSubmit={submit} aria-busy={pending}>
                         <div className="form-group">
                             <label htmlFor="email">Email</label>
@@ -70,8 +72,10 @@ export function Login() {
                             <button type="submit" className="signup-button" value="signup" disabled={pending}>Sign Up</button>
                         </div>
                     </form>
+                    <p className="auth-caption">Your profile, projects, and applications stay connected to your account.</p>
                 </div>
             </main>
+            <footer className="login-footer">Project Hub · Built for collaboration across campus.</footer>
         </div>
     );
 }
