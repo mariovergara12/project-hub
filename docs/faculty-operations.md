@@ -1,62 +1,44 @@
 # Faculty operations
 
-Faculty status is managed by a trusted operator with backend database access.
-Users cannot assign it through profile edits, tokens, or Auth metadata.
-The command cannot change administrator accounts or create new accounts.
+A trusted operator verifies faculty using backend database access. Users cannot
+change their role through profile edits or Auth metadata. There is no public
+role-change endpoint, and this command cannot change administrator accounts.
 
-## Review a change
+## Preview, then apply
 
-Use an existing application user UUID. The user must have signed in and opened
-their profile at least once. From `backend/`, run:
+The user must already exist in Project Hub: ask them to sign in and open their
+profile. From `backend/`, run:
 
 ```sh
-PROJECT_HUB_ENV_FILE=.env.supabase .venv/bin/python -m app.operators.faculty \
+PROJECT_HUB_ENV_FILE=.env.supabase uv run python -m app.operators.faculty \
   --user-id USER_UUID \
   --status verified \
-  --operator 'Operator name or work identity' \
+  --operator 'Your name or work identity' \
   --reason 'How faculty status was checked' \
   --expected-database postgres \
   --expected-project-ref YOUR_PROJECT_REF
 ```
 
-This defaults to a dry run and changes nothing. After checking the user, target,
-and proposed values, repeat with `--apply` to save the change and audit record.
-The database name, database project, and Auth project must match the explicit
-arguments. For a local database use the local environment and omit the project ref.
-Connection-target query overrides are rejected.
+This is a **dry run**. Check the account, target database/project, and proposed
+change. Repeat the command with `--apply` only when the change is approved.
+For local PostgreSQL, select the local environment/database and omit
+`--expected-project-ref`. The command rejects mismatched targets.
 
-Supported statuses:
+| Status | Result |
+| --- | --- |
+| `verified` | Faculty role with verification; can create research opportunities. |
+| `unverified` | Faculty role without verification; removes existing verification. |
+| `student` | Student role without verification. |
 
-- `verified`: faculty role with a verification timestamp.
-- `unverified`: faculty role without verification; also removes existing verification.
-- `student`: student role without verification.
+`--operator` records who made the change; it does not grant access. Repeating the
+current status makes no change and creates no duplicate audit record.
 
-Repeating the current status changes nothing and adds no duplicate audit entry.
-The command takes its privileges from trusted database access. `--operator` is
-an attribution label, not an authentication mechanism.
+## Audit and rollback
 
-## Audit and release
+Apply migration `71d9cfa35335` before using `--apply`. Each change saves its audit
+record and role update together; an audit failure rolls both back. Audit records
+survive account deletion and are private to trusted database operators.
 
-Migration `71d9cfa35335` adds `faculty_role_changes`. Each actual change records the
-user UUID, previous/new role and verification, operator, database principal,
-reason, and time. Role and audit changes commit together. Failed audit writes
-leave the role unchanged. Records survive account deletion.
-
-The audit table has RLS enabled, no client policies, and no public/client grants.
-It is not exposed through the application API. Database operators remain trusted
-and must preserve audit records in backups.
-
-Release after review:
-
-1. Apply the additive audit migration to the selected shared database. It does
-   not change existing accounts and remains compatible with the current API.
-2. Release the updated API, including PUT support in CORS, and verify both profile
-   selection endpoints before publishing the updated frontend.
-3. Run faculty commands only for explicitly reviewed account changes.
-
-For a code rollback, keep the audit table and saved selections. Downgrading this
-migration drops the audit history and does not undo role assignments; export the
-history before any deliberate downgrade. Reverse an assignment through a new
-reviewed operator command with its own reason and audit record.
-
-No shared migration or faculty assignment was performed during implementation.
+To reverse a role change, run a new reviewed command with a new reason.
+Do not use migration downgrade as an undo: it drops audit history without
+reversing role assignments. Preserve the audit table and its backups.
